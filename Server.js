@@ -4,7 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
-const app = express();
+const alertsRoutes = require('./src/routes/alertsRoutes');/const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*' }
@@ -13,6 +13,7 @@ const io = new Server(server, {
 // Middleware — runs on every request
 app.use(cors());
 app.use(express.json());
+//app.use('/api/alerts', alertsRoutes);
 
 // Test route — confirms server is alive
 app.get('/', (req, res) => {
