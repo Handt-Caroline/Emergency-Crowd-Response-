@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Admin Panel</title>
+        <link rel="stylesheet" href="admin.css">
+    </head>
+    <body>
+    <h1> Admin Panel</h1>
+
+    <table>
+        <tr>
+            <th>Hospital</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+
+        <tr>
+            <td>Central Hospital</td>
+            <td>Active</td>
+            <td><button onclick="toggle(this)">Suspend</button></td>
+        </tr>
+
+        <tr>
+            <td>General Hospital</td>
+            <td>Inactive</td>
+            <td><button onclick="toggle(this)">Active</button></td>
+
+        </tr>
+
+    </table>
+
+    <script>
+        function toggle(btn) {
+            if (btn.innerText === "Suspend") {
+                btn.innerText = "Inactive";
+            } else {
+                btn.innerText = "Suspend";
+
+                btn.parentElement.previousElementSibling.innerText = "Active"
+            }
+        }
+    </script>
+    </body>
+</html>

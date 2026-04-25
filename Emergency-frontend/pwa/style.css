@@ -1,0 +1,21 @@
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #111;
+    color: white;
+    padding: 30px;
+}
+
+button {
+    padding: 15px;
+    margin: 10px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: none;
+}
+
+.sos {
+    background: red;
+    color: white;
+    font-size: 24px;
+}
