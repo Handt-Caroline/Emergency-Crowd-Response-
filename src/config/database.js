@@ -1,8 +1,11 @@
+ feat/backend-core
 // src/config/database.js
+ main
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const pool = mysql.createPool({
+ feat/backend-core
   host:             process.env.DB_HOST     || 'localhost',
   user:             process.env.DB_USER     || 'root',
   password:         process.env.DB_PASSWORD || '',
@@ -22,4 +25,14 @@ pool.getConnection()
     console.error('Check your .env: DB_HOST DB_USER DB_PASSWORD DB_NAME');
   });
 
+
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+});
+
+ main
 module.exports = pool;
