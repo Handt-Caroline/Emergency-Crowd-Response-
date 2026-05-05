@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <link rel='stylesheet' href='style.css'>
+  <title>ECRS Admin</title>
+</head>
+<body>
+  <div class='login-page'>
+    <div class='login-card'>
+      <div class='login-logo'>ECRS</div>
+      <div class='login-sub'>Admin Panel</div>
+      <div id='error-msg' class='error-msg'></div>
+      <div class='form-group'>
+        <label class='form-label'>Admin Email</label>
+        <input type='email' id='email' class='form-input' placeholder='admin@ecrs.cm'>
+      </div>
+      <div class='form-group'>
+        <label class='form-label'>Password</label>
+        <input type='password' id='password' class='form-input' placeholder='••••••••'>
+      </div>
+      <button class='login-btn' onclick='login()'>Access Admin Panel</button>
+    </div>
+  </div>
+  <script src='login.js'></script>
+</body>
+</html>

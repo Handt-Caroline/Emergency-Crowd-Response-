@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <title>ECRS — Hospital Login</title>
+  
+
+  
+</head>
+
+<body>
+
+  <div class="login-page">
+    <div class="login-card">
+
+      <div class="login-logo">ECRS</div>
+      <div class="login-sub">Hospital Dashboard Login</div>
+
+      <div id="error-msg" class="error-msg"></div>
+
+      <!-- EMAIL -->
+      <div class="form-group">
+        <label class="form-label">Email / Adresse email</label>
+        <input
+          type="email"
+          id="email"
+          class="form-input"
+          placeholder="hospital@ecrs.cm"
+          autocomplete="email"
+        >
+      </div>
+
+      <!-- PASSWORD -->
+      <div class="form-group">
+        <label class="form-label">Password / Mot de passe</label>
+
+        <div class="input-wrap">
+          <input
+            type="password"
+            id="password"
+            class="form-input"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          >
+
+          <button
+            type="button"
+            class="toggle-pw"
+            onclick="togglePw()"
+            tabindex="-1"
+          >
+            👁
+          </button>
+        </div>
+      </div>
+
+      <!-- LOGIN BUTTON -->
+      <button class="login-btn" onclick="login()">
+        Login / Connexion
+      </button>
+
+      <!-- REGISTER LINK -->
+      <p style="text-align:center; margin-top:16px; font-size:13px; color:var(--muted)">
+        New hospital?
+        <a href="register.html" style="color:var(--blue)">
+          Register here / S'inscrire
+        </a>
+      </p>
+
+    </div>
+  </div>
+
+  <script>
+    function togglePw() {
+      const input = document.getElementById('password');
+      const btn   = document.querySelector('.toggle-pw');
+
+      input.type = input.type === 'password' ? 'text' : 'password';
+
+      btn.textContent = input.type === 'password'
+        ? '👁'
+        : '🙈';
+    }
+  </script>
+
+  <script src="login.js"></script>
+
+</body>
+</html>

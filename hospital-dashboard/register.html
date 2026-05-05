@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECRS — Register Hospital</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="register-style.css">
+
+</head>
+
+<body>
+
+<div class="login-page" style="padding:30px;">
+<div class="login-card">
+
+<div class="login-logo">ECRS</div>
+<div class="login-sub">Register your hospital</div>
+
+<div id="error-msg"></div>
+<div id="success-msg"></div>
+
+<div class="section-title">Basic Info</div>
+
+<input id="r-name" class="form-input" placeholder="Hospital name">
+
+<!-- EMAIL -->
+<input id="r-email" class="form-input" placeholder="Email">
+
+<div class="input-wrap">
+  <input id="r-password" class="form-input" type="password"
+  placeholder="Password"
+  oninput="checkPasswordStrength(this.value)">
+  <button class="toggle-pw" onclick="togglePassword()">👁</button>
+</div>
+
+<div class="pw-strength-bar">
+  <div class="pw-strength-fill" id="pw-fill"></div>
+</div>
+<div id="pw-label" class="pw-strength-label">Enter password</div>
+
+<input id="r-address" class="form-input" placeholder="Address">
+
+<!-- PHONE -->
+<input id="r-phone" class="form-input" placeholder="Phone" inputmode="numeric">
+
+<button class="location-btn" onclick="getLocation()">📍 Use My Location</button>
+
+<div class="two-col">
+<input id="r-lat" class="form-input" placeholder="Latitude" readonly>
+<input id="r-lng" class="form-input" placeholder="Longitude" readonly>
+</div>
+
+<input id="r-capacity" class="form-input" placeholder="Capacity" inputmode="numeric">
+
+<div class="section-title">Equipment</div>
+<div id="equipment-grid" class="check-grid"></div>
+
+<div class="section-title">Personnel</div>
+<div id="personnel-grid" class="check-grid"></div>
+
+<button class="login-btn" onclick="submit()" id="reg-btn">
+Register Hospital
+</button>
+
+</div>
+</div>
+
+<script>
+const API_URL = (window.location.hostname !== 'localhost') ? window.location.origin : 'http://localhost:3000';
+
+/* OPTIONS (UNCHANGED) */
+const EQUIPMENT_OPTIONS = [
+  { val:'DEFIBRILLATOR', en:'Defibrillator', fr:'Défibrillateur' },
+  { val:'OXYGEN', en:'Oxygen Supply', fr:'Oxygène' },
+  { val:'ICU_BEDS', en:'ICU Beds', fr:'Lits USI' },
+  { val:'ECG_MACHINE', en:'ECG Machine', fr:'Machine ECG' },
+  { val:'OPERATING_THEATRE', en:'Operating Theatre', fr:'Bloc opératoire' },
+  { val:'BLOOD_BANK', en:'Blood Bank', fr:'Banque de sang' },
+  { val:'XRAY', en:'X-Ray', fr:'Radiologie' },
+  { val:'CT_SCAN', en:'CT Scan', fr:'Scanner' },
+  { val:'MRI', en:'MRI', fr:'IRM' },
+  { val:'BURNS_UNIT', en:'Burns Unit', fr:'Unité brûlures' },
+  { val:'MATERNITY_WARD', en:'Maternity Ward', fr:'Maternité' },
+  { val:'PAEDIATRIC_WARD', en:'Paediatric Ward', fr:'Pédiatrie' },
+  { val:'EMERGENCY_BAY', en:'Emergency Bay', fr:"Salle d'urgences" },
+  { val:'VENTILATOR', en:'Ventilator', fr:'Respirateur' }
+];
+
+const PERSONNEL_OPTIONS = [
+  { val:'CARDIOLOGIST', en:'Cardiologist', fr:'Cardiologue' },
+  { val:'SURGEON', en:'Surgeon', fr:'Chirurgien' },
+  { val:'ANAESTHESIOLOGIST', en:'Anaesthesiologist', fr:'Anesthésiste' },
+  { val:'NEUROLOGIST', en:'Neurologist', fr:'Neurologue' },
+  { val:'RESUSCITATION_NURSE', en:'Resuscitation Nurse', fr:'Infirmier réanimation' },
+  { val:'GENERAL_DOCTOR', en:'General Doctor', fr:'Médecin généraliste' },
+  { val:'PAEDIATRICIAN', en:'Paediatrician', fr:'Pédiatre' },
+  { val:'OBSTETRICIAN', en:'Obstetrician', fr:'Obstétricien' },
+  { val:'MIDWIFE', en:'Midwife', fr:'Sage-femme' },
+  { val:'BURNS_SPECIALIST', en:'Burns Specialist', fr:'Spécialiste brûlures' }
+];
+
+/* GRID */
+function buildGrid(options, gridId, type) {
+  const grid = document.getElementById(gridId);
+
+  options.forEach(opt => {
+    const item = document.createElement('label');
+    item.className = 'check-item';
+    item.dataset.type = type;
+
+    item.innerHTML = `
+      <input type="checkbox" value="${opt.val}">
+      <div>
+        <strong>${opt.en}</strong><br>
+        <span>${opt.fr}</span>
+      </div>
+    `;
+
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const cb = item.querySelector('input');
+      cb.checked = !cb.checked;
+      item.classList.toggle('checked', cb.checked);
+    });
+
+    grid.appendChild(item);
+  });
+}
+
+function getSelected(type) {
+  return Array.from(document.querySelectorAll(`[data-type="${type}"].checked input`))
+    .map(cb => cb.value);
+}
+
+/* PASSWORD */
+function togglePassword() {
+  const el = document.getElementById('r-password');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function checkPasswordStrength(pw) {
+  const fill = document.getElementById('pw-fill');
+  const label = document.getElementById('pw-label');
+
+  const score =
+    (pw.length >= 8) +
+    (/[A-Z]/.test(pw)) +
+    (/[0-9]/.test(pw)) +
+    (/[!@#$%^&*]/.test(pw));
+
+  const levels = ["Enter password","Weak","Fair","Good","Strong"];
+  const colors = ["transparent","#EF4444","#F97316","#EAB308","#22C55E"];
+
+  fill.style.width = (score * 25) + "%";
+  fill.style.background = colors[score];
+  label.textContent = levels[score];
+}
+
+/* ── EMAIL VALIDATION — strict professional rules ─────────────────
+   1. No spaces anywhere
+   2. No negative numbers (minus before a digit)
+   3. Must not start or end with a dot (local part)
+   4. No two consecutive dots anywhere
+   5. Local part: only letters, digits, . _ % + -
+   6. Exactly one @
+   7. Domain must contain at least one dot
+   8. TLD at least 2 letters
+   9. Auto-lowercased as user types
+──────────────────────────────────────────────────────────────── */
+function isValidEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  if (/\s/.test(email))            return false;  // no spaces
+  if (/[-]\d/.test(email))         return false;  // no negative numbers (- followed by digit)
+
+  const parts = email.split('@');
+  if (parts.length !== 2)           return false;  // exactly one @
+
+  const local  = parts[0];
+  const domain = parts[1];
+
+  // Local part
+  if (!local.length)                return false;
+  if (local.startsWith('.'))        return false;  // cannot start with dot
+  if (local.endsWith('.'))          return false;  // cannot end with dot
+  if (/\.{2,}/.test(local))        return false;  // no consecutive dots
+  if (!/^[a-z0-9._%+\-]+$/.test(local)) return false;
+
+  // Domain
+  if (!domain.length)               return false;
+  if (domain.startsWith('.'))       return false;
+  if (domain.endsWith('.'))         return false;
+  if (/\.{2,}/.test(domain))       return false;  // no consecutive dots in domain
+  if (!domain.includes('.'))        return false;  // must have a dot
+  if (!/[a-z]{2,}$/.test(domain))  return false;  // TLD min 2 letters
+
+  return true;
+}
+
+// Auto-lowercase + space block + live green border feedback
+document.getElementById('r-email').addEventListener('input', function () {
+  const pos = this.selectionStart;
+  this.value = this.value.toLowerCase().replace(/\s/g, '');
+  this.setSelectionRange(pos, pos);
+  if (this.value) {
+    this.style.borderColor = isValidEmail(this.value.trim()) ? '#22C55E' : '';
+  } else {
+    this.style.borderColor = '';
+  }
+});
+document.getElementById('r-email').addEventListener('keydown', function (e) {
+  if (e.key === ' ') e.preventDefault();
+});
+
+/* NAME */
+function isValidName(name){
+  return /^[A-Za-z]/.test(name);
+}
+
+/* PHONE (ONLY NUMBERS + +) */
+document.getElementById("r-phone").addEventListener("input", function () {
+  this.value = this.value.replace(/[^0-9+]/g, '');
+});
+
+/* GPS */
+function getLocation(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById('r-lat').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('r-lng').value = pos.coords.longitude.toFixed(6);
+  });
+}
+
+/* ERROR */
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+
+  const btn = document.getElementById('reg-btn');
+  btn.className = "login-btn error-btn";
+
+  setTimeout(() => el.textContent = "", 4000);
+}
+
+/* SUBMIT */
+async function submit() {
+
+  const btn = document.getElementById('reg-btn');
+
+  const name = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const password = document.getElementById('r-password').value;
+  const address = document.getElementById('r-address').value.trim();
+  const phone = document.getElementById('r-phone').value.trim();
+  const lat = document.getElementById('r-lat').value.trim();
+  const lng = document.getElementById('r-lng').value.trim();
+  const capacity = document.getElementById('r-capacity').value.trim();
+
+  const capNum = Number(capacity);
+
+  if (!isValidName(name)) return showError("Name must start with a letter");
+  if (!isValidEmail(email)) return showError("Invalid email. Check: no spaces, no consecutive dots, must not start/end with a dot, no negative numbers.");
+  if (password.length < 8) return showError("Weak password");
+  if (!lat || !lng) return showError("Select location");
+
+  if (!phone || !/^[0-9+]{6,20}$/.test(phone))
+    return showError("Invalid phone number");
+
+  if (!Number.isInteger(capNum) || capNum < 1 || capNum > 2000)
+    return showError("Invalid capacity");
+
+  const equipment = getSelected('equipment');
+  const personnel = getSelected('personnel');
+
+  if (equipment.length === 0) return showError("Select equipment");
+  if (personnel.length === 0) return showError("Select personnel");
+
+  btn.className = "login-btn loading-btn";
+  btn.textContent = "Submitting...";
+
+  const res = await fetch(`${API_URL}/api/auth/register`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      name,email,password,address,phone,
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lng),
+      totalCapacity: capNum,
+      equipment,personnel
+    })
+  });
+
+  if (!res.ok) {
+    btn.className = "login-btn error-btn";
+    btn.textContent = "Failed ❌";
+    return;
+  }
+
+  btn.className = "login-btn success-btn";
+  btn.textContent = "✔ Submitted";
+}
+
+buildGrid(EQUIPMENT_OPTIONS,'equipment-grid','equipment');
+buildGrid(PERSONNEL_OPTIONS,'personnel-grid','personnel');
+
+</script>
+
+</body>
+</html>
