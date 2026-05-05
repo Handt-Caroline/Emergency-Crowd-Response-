@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECRS — How It Works</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="how-it-style.css">
+</head>
+<body>
+
+  <div class="ambient">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <nav>
+    <a class="nav-logo" href="#"><span class="e">E</span><span class="crs">CRS</span></a>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a href="about.html" style="
+        font-size:12px;font-weight:700;letter-spacing:1px;
+        color:#94a3b8;text-decoration:none;
+        background:rgba(255,255,255,0.05);
+        border:1px solid rgba(255,255,255,0.1);
+        padding:6px 14px;border-radius:999px;
+        display:flex;align-items:center;gap:6px;
+        transition:color 0.2s,background 0.2s;
+      " onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,0.1)'"
+         onmouseout="this.style.color='#94a3b8';this.style.background='rgba(255,255,255,0.05)'">
+        ← About Us
+      </a>
+      <div class="nav-pill">HOW IT WORKS</div>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- Hero -->
+    <section class="hero reveal">
+      <div class="eyebrow">STEP-BY-STEP GUIDE</div>
+      <h1>From <span class="accent">SOS tap</span> to<br>hospital arrival</h1>
+      <p>Here's exactly how ECRS turns a bystander's panic into a coordinated, professional medical response — in under 30 seconds.</p>
+    </section>
+
+    <!-- Journey -->
+    <div class="journey">
+
+      <!-- BYSTANDER STEPS -->
+      <div class="journey-actor">
+        <div class="actor-badge actor-bystander">📱 Bystander</div>
+        <div class="actor-line"></div>
+      </div>
+
+      <div class="steps">
+        <div class="step-card">
+          <div class="step-num num-bystander">01</div>
+          <div class="step-icon">🆘</div>
+          <div class="step-body">
+            <div class="step-title">Press the SOS Button</div>
+            <div class="step-desc">The bystander opens ECRS and taps the large red SOS button. No login, no registration — the app is instantly ready. Designed for maximum speed under stress.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-bystander">02</div>
+          <div class="step-icon">🏥</div>
+          <div class="step-body">
+            <div class="step-title">Select Emergency Type</div>
+            <div class="step-desc">Choose from <strong>Medical</strong>, Fire, or Security. Currently, Medical is active. Fire and Security modules are coming soon. One large tap — no scrolling required.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-bystander">03</div>
+          <div class="step-icon">📋</div>
+          <div class="step-body">
+            <div class="step-title">Describe the Situation</div>
+            <div class="step-desc">Select the specific medical situation — from cardiac arrest and severe bleeding to childbirth or allergic reaction. 13 situation types available in English and French.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-bystander">04</div>
+          <div class="step-icon">👥</div>
+          <div class="step-body">
+            <div class="step-title">Indicate Number of Victims</div>
+            <div class="step-desc">Tap 1, 2, 3+, or Unknown. This data helps the hospital prepare the right level of triage response before anyone arrives.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-bystander">05</div>
+          <div class="step-icon">📷</div>
+          <div class="step-body">
+            <div class="step-title">Add Info & Photo (Optional)</div>
+            <div class="step-desc">Optionally provide a name, phone number, and scene photo. All fields can be skipped — the system still works with zero personal info. The photo gives the hospital a real-time view of the scene.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-bystander">06</div>
+          <div class="step-icon">📍</div>
+          <div class="step-body">
+            <div class="step-title">Tap SEND ALERT</div>
+            <div class="step-desc">Pressing Send Alert triggers GPS capture. The app requests the device's current location with high accuracy and bundles it with all alert data.</div>
+            <span class="step-tech">GPS · navigator.geolocation API</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SYSTEM STEPS -->
+      <div class="journey-actor">
+        <div class="actor-badge actor-system">⚡ ECRS System</div>
+        <div class="actor-line"></div>
+      </div>
+
+      <div class="steps">
+        <div class="step-card">
+          <div class="step-num num-system">07</div>
+          <div class="step-icon">🌐</div>
+          <div class="step-body">
+            <div class="step-title">Alert Posted to Backend</div>
+            <div class="step-desc">The alert is sent as a POST request to <code style="font-family:monospace;color:var(--blue);font-size:12px">/api/alerts</code> on the ECRS Node.js server with all collected data, including GPS coordinates and optional photo.</div>
+            <span class="step-tech">Node.js · Express · Multipart/JSON</span>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-system">08</div>
+          <div class="step-icon">🔎</div>
+          <div class="step-body">
+            <div class="step-title">Dispatch Engine Activates</div>
+            <div class="step-desc">The DispatchEngine calculates the distance from the bystander's GPS position to every registered, available hospital. It ranks them by proximity and capacity, then selects the optimal candidate.</div>
+            <span class="step-tech">DispatchEngine.js · Haversine Formula</span>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-system">09</div>
+          <div class="step-icon">📡</div>
+          <div class="step-body">
+            <div class="step-title">Alert Pushed to Hospital via WebSocket</div>
+            <div class="step-desc">Using Socket.IO, ECRS instantly pushes the full alert — type, situation, victims, distance, contact, photo URL, and suggested preparation — to the selected hospital's private room. This happens in real time, no polling needed.</div>
+            <span class="step-tech">Socket.IO · emergency:new event</span>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-system">10</div>
+          <div class="step-icon">⏳</div>
+          <div class="step-body">
+            <div class="step-title">Bystander App Shows Loading State</div>
+            <div class="step-desc">While the hospital responds, the bystander sees a loading screen. A socket listener on the alert room waits for <code style="font-family:monospace;color:var(--blue);font-size:12px">alert:confirmed</code>, <code style="font-family:monospace;color:var(--blue);font-size:12px">alert:reassigned</code>, or <code style="font-family:monospace;color:var(--blue);font-size:12px">alert:failed</code>.</div>
+            <span class="step-tech">Socket.IO · alert room listener</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HOSPITAL STEPS -->
+      <div class="journey-actor">
+        <div class="actor-badge actor-hospital">🏥 Hospital Dashboard</div>
+        <div class="actor-line"></div>
+      </div>
+
+      <div class="steps">
+        <div class="step-card">
+          <div class="step-num num-hospital">11</div>
+          <div class="step-icon">🚨</div>
+          <div class="step-body">
+            <div class="step-title">Dashboard Flashes — Alarm Sounds</div>
+            <div class="step-desc">The hospital's ECRS dashboard switches from standby to full alert mode. An alarm sound plays via the Web Audio API. The alert panel shows all emergency details: type, situation, victims, distance, contact info, photo, and suggested preparation.</div>
+            <span class="step-tech">Socket.IO · emergency:new · AudioContext</span>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-hospital">12</div>
+          <div class="step-icon">🗺️</div>
+          <div class="step-body">
+            <div class="step-title">Hospital Reviews & Sees the Map</div>
+            <div class="step-desc">A Leaflet.js map shows the exact bystander location with a pin. The hospital staff reviews the situation, reads preparation suggestions, and decides whether to accept or decline the alert.</div>
+            <span class="step-tech">Leaflet.js · GPS pin · Prep suggestions</span>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-hospital">13</div>
+          <div class="step-icon">✅</div>
+          <div class="step-body">
+            <div class="step-title">Hospital Confirms the Alert</div>
+            <div class="step-desc">The hospital taps <strong>CONFIRM</strong>. This triggers <code style="font-family:monospace;color:var(--green);font-size:12px">alert:confirmed</code> back to the bystander's socket room with the hospital name, phone, distance, and GPS for directions.</div>
+            <span class="step-tech">confirmAlert() · socket.emit · alert:confirmed</span>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-hospital">14</div>
+          <div class="step-icon">🗺️</div>
+          <div class="step-body">
+            <div class="step-title">Bystander Gets Directions</div>
+            <div class="step-desc">The bystander's screen updates to show the confirmed hospital name, distance, a Google Maps directions link, and the hospital's phone number. The patient can now be transported with confidence.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num num-hospital">15</div>
+          <div class="step-icon">🔄</div>
+          <div class="step-body">
+            <div class="step-title">Fallback: Reassign if Declined</div>
+            <div class="step-desc">If a hospital declines, the Dispatch Engine automatically contacts the next closest available hospital. The bystander
+                accepts or all options are exhausted.</div>
+            <span class="step-tech">declineAlert() · DispatchEngine · alert:reassigned</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Flow diagram -->
+    <div class="flow-section">
+      <div class="flow-inner">
+        <div class="flow-title reveal">Alert Flow at a Glance</div>
+        <div class="flow-sub reveal">The complete journey from tap to care</div>
+        <div class="flow-diagram reveal">
+          <div class="flow-node">
+            <div class="flow-circle fc-red">📱</div>
+            <div class="flow-label">Bystander<br>Taps SOS</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">
+            <div class="flow-circle fc-orange">📍</div>
+            <div class="flow-label">GPS<br>Captured</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">
+            <div class="flow-circle fc-blue">⚡</div>
+            <div class="flow-label">Dispatch<br>Engine</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">
+            <div class="flow-circle fc-purple">📡</div>
+            <div class="flow-label">Hospital<br>Notified</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">
+            <div class="flow-circle fc-green">✅</div>
+            <div class="flow-label">Alert<br>Confirmed</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">
+            <div class="flow-circle" style="background:rgba(16,185,129,0.25);border-color:rgba(16,185,129,0.6)">🚑</div>
+            <div class="flow-label">Patient<br>Directed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Outcome cards -->
+    <div class="results-section reveal">
+      <div class="results-title">Three Possible Outcomes</div>
+      <div class="results-sub">The system handles every scenario gracefully</div>
+      <div class="results-grid">
+        <div class="result-card" style="border-color:rgba(16,185,129,0.25)">
+          <div class="result-icon">✅</div>
+          <div class="result-title" style="color:var(--green)">Confirmed</div>
+          <p class="result-desc">A hospital accepts. The bystander receives the hospital name, distance, phone number, and a Google Maps directions link. Case is logged.</p>
+        </div>
+        <div class="result-card" style="border-color:rgba(245,158,11,0.25)">
+          <div class="result-icon">🔄</div>
+          <div class="result-title" style="color:var(--orange)">Reassigned</div>
+          <p class="result-desc">A hospital declines. ECRS automatically tries the next closest available hospital, keeping the bystander informed throughout.</p>
+        </div>
+        <div class="result-card" style="border-color:rgba(225,29,72,0.25)">
+          <div class="result-icon">📞</div>
+          <div class="result-title" style="color:var(--red-soft)">No Hospital</div>
+          <p class="result-desc">If all hospitals are unavailable, the app shows direct emergency call numbers (SAMU 15, Pompiers 18, Police 17) as an immediate fallback.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="footer-logo"><span style="color:var(--red)">E</span>CRS</div>
+    <p class="footer-copy">© 2026 Emergency Crowd Response System — Built for the moments that matter.</p>
+  </footer>
+
+  <script>
+    // Intersection observer for reveal + step cards
+    const allReveals = document.querySelectorAll('.reveal, .step-card');
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), i * 60);
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+
+    allReveals.forEach(el => obs.observe(el));
+  </script>
+</body>
+</html>
