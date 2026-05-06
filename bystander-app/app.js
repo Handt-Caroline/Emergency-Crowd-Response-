@@ -393,7 +393,7 @@ function generateDeviceId() {
 
 // ══ Service Worker ═════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
+  navigator.serviceWorker.register('/bystander/sw.js')
     .then(() => console.log('[ECRS] SW registered'))
     .catch(err => console.log('[ECRS] SW error:', err));
 }
