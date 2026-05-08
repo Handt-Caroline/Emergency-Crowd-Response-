@@ -135,9 +135,27 @@ async function createAlert(req, res) {
     const suggestedPrepFr = getSuggestedPrep(situation, 'fr');
     const suggestedPrepEn = getSuggestedPrep(situation, 'en');
 
+    // ── Send TOP 3 hospital list to bystander as info (backup options) ──
+    const io = req.app.get('io');
+    if (Array.isArray(hospital.top3) && hospital.top3.length > 0) {
+      console.log(`[ALERT] 📋 Sending top ${hospital.top3.length} hospitals to bystander (alert_room_${alertId})`);
+      io.to(`alert_room_${alertId}`).emit('alert:dispatched', {
+        alertId,
+        primary: {
+          id:            hospital.id,
+          name:          hospital.name,
+          distance_km:   Number((hospital.distance_metres / 1000).toFixed(2)),
+          phone:         hospital.phone || null,
+          latitude:      Number(hospital.latitude),
+          longitude:     Number(hospital.longitude)
+        },
+        backups:    hospital.top3.slice(1),  // 2nd and 3rd hospitals
+        topAll:     hospital.top3            // full list (1st = primary, 2-3 = backups)
+      });
+    }
+
     // ── Emit alarm to the winning hospital ──
     console.log(`[ALERT] 📡 Emitting emergency:new to institution_room_${hospital.id} (${hospital.name})`);
-    const io = req.app.get('io');
     io.to(`institution_room_${hospital.id}`).emit('emergency:new', {
       alertId,
       emergency_type,

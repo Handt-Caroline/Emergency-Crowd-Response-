@@ -309,12 +309,65 @@ function joinAlertRoom(alertId) {
   if (!state.socket) state.socket = io(API_URL);
   state.socket.emit('join_alert_room', alertId);
 
+  // When alert is dispatched, server sends top 3 hospital list immediately
+  state.socket.on('alert:dispatched', (data) => showDispatchedTop3(data));
+
   state.socket.on('alert:confirmed',  (guidance) => showGuidance(guidance));
   state.socket.on('alert:reassigned', () => {
     const t = document.querySelector('.loading-text');
     if (t) t.innerHTML = 'Contacting next hospital…<br>Contacte le prochain hôpital…';
   });
   state.socket.on('alert:failed', (data) => showFailed(data));
+}
+
+// ══ Dispatched (waiting for hospital to confirm — show top 3 immediately) ══
+function showDispatchedTop3(data) {
+  const primary = data.primary;
+  const backups = data.backups || [];
+
+  const primaryMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${primary.latitude},${primary.longitude}`;
+
+  const backupCardsHtml = backups.length === 0 ? '' : `
+    <div class='backup-section'>
+      <div class='backup-title'>📋 Backup options / Options de secours</div>
+      <div class='backup-list'>
+        ${backups.map((h, i) => `
+          <div class='backup-card'>
+            <div class='backup-rank'>${i + 2}</div>
+            <div class='backup-info'>
+              <div class='backup-name'>${h.name}</div>
+              <div class='backup-meta'>📍 ${h.distance_km} km · ${h.free_capacity} beds</div>
+            </div>
+            <a href='https://www.google.com/maps/dir/?api=1&destination=${h.latitude},${h.longitude}'
+               target='_blank' class='backup-maps'>🗺️</a>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('screen6-content').innerHTML = `
+    <div class='guidance-card'>
+      <div class='dispatch-pending'>
+        <div class='pulse-dot'></div>
+        <span>Awaiting hospital confirmation...</span>
+      </div>
+      <div class='guidance-hospital-name'>${primary.name}</div>
+      <div class='guidance-dist'>📍 ${primary.distance_km} km — selected as best match</div>
+      <div class='dispatch-info'>
+        <span style='font-size:18px'>⏳</span>
+        <span>Alert sent. ${primary.name} is reviewing now.<br>
+        <em style='color:var(--text-muted)'>Alerte envoyée. ${primary.name} examine maintenant.</em></span>
+      </div>
+      <a href='${primaryMapsUrl}' target='_blank' class='maps-btn'>
+        🗺️ Get Directions to ${primary.name}
+      </a>
+      ${primary.phone
+        ? `<a href='tel:${primary.phone}' class='call-btn'>📞 Call Hospital</a>`
+        : ''}
+      ${backupCardsHtml}
+    </div>
+  `;
 }
 
 // ══ Guidance (confirmed) ═══════════════════════════════════════════════
