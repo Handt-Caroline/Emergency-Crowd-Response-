@@ -501,3 +501,66 @@ body {
   background: var(--surface); border: 1px solid var(--border-2);
   color: var(--text-dim); font-size: 14px; padding: 14px; box-shadow: none;
 }
+
+/* ════════════════════════════════════════════════════════════
+   MULTI-SELECT SYMPTOM STYLES (Issue 2 - Marie's request)
+   ════════════════════════════════════════════════════════════ */
+
+/* Selected symptom button — bright red glow */
+.sit-btn.selected {
+  border-color: var(--red) !important;
+  background: linear-gradient(135deg, rgba(230,57,70,0.18), rgba(230,57,70,0.08)) !important;
+  box-shadow: 0 0 0 3px rgba(230,57,70,0.25), 0 6px 20px rgba(230,57,70,0.35) !important;
+  transform: translateY(-2px);
+}
+
+.sit-btn.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  background: var(--red);
+  color: white;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(230,57,70,0.5);
+}
+
+.sit-btn { position: relative; }
+
+/* Continue bar at bottom of symptom screen */
+.continue-symptom-bar {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.symptom-counter {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Disabled Continue button */
+.next-btn.disabled,
+.next-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: rgba(150,150,150,0.3) !important;
+  box-shadow: none !important;
+}

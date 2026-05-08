@@ -145,9 +145,17 @@
     </div>
     <div class="screen-content">
       <div class="section-chip">STEP 2 OF 4</div>
-      <h2 class="screen-title">What is<br><em>happening?</em></h2>
-      <p class="screen-sub">Que se passe-t-il ?</p>
+      <h2 class="screen-title">Select all<br><em>symptoms you see</em></h2>
+      <p class="screen-sub">Sélectionnez tous les symptômes — Tap multiple to select</p>
       <div id="sit-buttons" class="sit-grid"></div>
+
+      <div class="continue-symptom-bar">
+        <span id="symptom-counter" class="symptom-counter">Select at least one</span>
+        <button id="continue-symptoms-btn" class="next-btn disabled" disabled onclick="confirmSymptoms()">
+          Continue
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 

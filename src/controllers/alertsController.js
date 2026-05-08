@@ -1,6 +1,11 @@
 const pool           = require('../config/database');
 const DispatchEngine = require('../services/DispatchEngine');
-const { getRequirements, getSuggestedPrep } = require('../utils/categoryMapper');
+const {
+  getRequirements,
+  getCombinedRequirements,
+  getOtherWithKeywords,
+  getSuggestedPrep
+} = require('../utils/categoryMapper');
 
 // ══════════════════════════════════════════════════════════════════
 // POST /api/alerts
@@ -40,7 +45,19 @@ async function createAlert(req, res) {
     }
 
     // ── Derive medical category from situation ──
-    const requirements    = getRequirements(situation);
+    // Marie's enhancements:
+    //   • Multi-select: situation may be "CHEST_PAIN,COLD_SWEAT" (comma-separated)
+    //   • OTHER: situation may be "OTHER: <free text>" — scan keywords
+    let requirements;
+    if (situation && situation.startsWith('OTHER:')) {
+      const description = situation.substring(6).trim();
+      requirements = getOtherWithKeywords(description);
+    } else if (situation && situation.includes(',')) {
+      const symptomList = situation.split(',').map(s => s.trim()).filter(Boolean);
+      requirements = getCombinedRequirements(symptomList);
+    } else {
+      requirements = getRequirements(situation);
+    }
     const medicalCategory = requirements.medicalCategory;
 
     // ── Save the alert to database ──

@@ -6,8 +6,8 @@ const API_URL = (typeof window !== 'undefined' && window.location.hostname !== '
 // ── State ──────────────────────────────────────────────────────────────
 const state = {
   type:             null,
-  situation:        null,
-  situationLabel:   null,   // human-readable, used for "Other" description
+  situations:       [],     // ARRAY of selected symptoms (multi-select)
+  situationLabels:  [],     // human-readable labels for selected symptoms
   otherDescription: null,   // free text when user picks "Other"
   count:            null,
   alertId:          null,
@@ -20,19 +20,21 @@ const state = {
 // ═══════════════════════════════════════════════════════════════════════
 const SITUATIONS = {
   MEDICAL: [
-    { emoji: '😵', en: 'Unconscious',        fr: 'Inconscient',       val: 'UNCONSCIOUS'       },
-    { emoji: '🫁', en: 'Not breathing',      fr: 'Ne respire pas',    val: 'NOT_BREATHING'     },
-    { emoji: '💔', en: 'Chest pain',         fr: 'Douleur thorax',    val: 'CHEST_PAIN'        },
-    { emoji: '🫀', en: 'Cardiac arrest',     fr: 'Arrêt cardiaque',   val: 'CARDIAC_ARREST'    },
-    { emoji: '🩸', en: 'Severe bleeding',    fr: 'Saignement grave',  val: 'SEVERE_BLEEDING'   },
-    { emoji: '🚗', en: 'Accident / Trauma',  fr: 'Accident',          val: 'ACCIDENT_TRAUMA'   },
-    { emoji: '🔥', en: 'Burn',               fr: 'Brûlure',           val: 'BURN'              },
-    { emoji: '🧠', en: 'Stroke / AVC',       fr: 'AVC',               val: 'STROKE'            },
-    { emoji: '⚡', en: 'Seizure',            fr: 'Convulsion',        val: 'SEIZURE'           },
-    { emoji: '👶', en: 'Child emergency',    fr: 'Urgence enfant',    val: 'CHILD_EMERGENCY'   },
-    { emoji: '🤰', en: 'Childbirth',         fr: 'Accouchement',      val: 'CHILDBIRTH'        },
-    { emoji: '🤧', en: 'Allergic reaction',  fr: 'Réaction allerg.',  val: 'ALLERGIC_REACTION' },
-    { emoji: '✏️', en: 'Other',              fr: 'Autre',             val: 'OTHER', isOther: true },
+    { emoji: '😵', en: 'Person collapsed',    fr: 'Personne effondrée', val: 'UNCONSCIOUS'           },
+    { emoji: '🫁', en: 'Not breathing',       fr: 'Ne respire pas',     val: 'NOT_BREATHING'         },
+    { emoji: '💔', en: 'Chest pain',          fr: 'Douleur thorax',     val: 'CHEST_PAIN'            },
+    { emoji: '🩸', en: 'Severe bleeding',     fr: 'Saignement grave',   val: 'SEVERE_BLEEDING'       },
+    { emoji: '🚗', en: 'Accident / Crash',    fr: 'Accident',           val: 'ACCIDENT_TRAUMA'       },
+    { emoji: '🔥', en: 'Burn',                fr: 'Brûlure',            val: 'BURN'                  },
+    { emoji: '😶', en: 'Face drooping',       fr: 'Visage tombant',     val: 'FACE_DROOPING'         },
+    { emoji: '🗣️', en: 'Slurred speech',      fr: 'Parole confuse',     val: 'SLURRED_SPEECH'        },
+    { emoji: '⚡', en: 'Body shaking',        fr: 'Convulsions',        val: 'SEIZURE'               },
+    { emoji: '🫨', en: 'Cold sweat / Pale',   fr: 'Sueur froide',       val: 'COLD_SWEAT'            },
+    { emoji: '👶', en: 'Child unconscious',   fr: 'Enfant inconscient', val: 'CHILD_EMERGENCY'       },
+    { emoji: '🤰', en: 'Childbirth / Labor',  fr: 'Accouchement',       val: 'CHILDBIRTH'            },
+    { emoji: '😷', en: 'Trouble breathing',   fr: 'Difficulté respirer',val: 'BREATHING_DIFFICULTY'  },
+    { emoji: '🤮', en: 'Vomiting blood',      fr: 'Vomit du sang',      val: 'VOMITING_BLOOD'        },
+    { emoji: '✏️', en: 'Other',               fr: 'Autre',              val: 'OTHER', isOther: true  },
   ],
   FIRE: [
     { emoji: '🏠', en: 'House fire',         fr: 'Incendie maison',   val: 'FIRE_BUILDING'     },
@@ -76,6 +78,10 @@ function showComingSoon(name) {
 // ══ Select emergency type ══════════════════════════════════════════════
 function selectType(type) {
   state.type = type;
+  // Reset selections when changing type
+  state.situations = [];
+  state.situationLabels = [];
+  updateContinueButton();
 
   // Build situation grid
   const container = document.getElementById('sit-buttons');
@@ -84,26 +90,25 @@ function selectType(type) {
   SITUATIONS[type].forEach(sit => {
     const btn = document.createElement('button');
     btn.className = sit.isOther ? 'sit-btn other-btn' : 'sit-btn';
+    btn.dataset.val = sit.val;
     btn.innerHTML = `
       <span class='sit-emoji'>${sit.emoji}</span>
       <strong>${sit.en}</strong><br>
       <span style='font-size:10px;color:var(--text-muted)'>${sit.fr}</span>
     `;
-    btn.onclick = () => selectSituation(sit);
+    btn.onclick = () => toggleSituation(sit, btn);
     container.appendChild(btn);
   });
 
   goTo(3);
 }
 
-// ══ Select situation ═══════════════════════════════════════════════════
-function selectSituation(sit) {
-  state.situation      = sit.val;
-  state.situationLabel = sit.en;
-
+// ══ Toggle situation selection (multi-select) ══════════════════════════
+function toggleSituation(sit, btn) {
+  // OTHER button always opens the description screen (single behavior)
   if (sit.isOther) {
-    // Go to free-text screen
-    // Victim back button should go back to 3b (other screen)
+    state.situations = ['OTHER'];
+    state.situationLabels = ['Other'];
     document.getElementById('victim-back-btn').onclick = () => goTo('3b');
     goTo('3b');
 
@@ -114,12 +119,46 @@ function selectSituation(sit) {
       const rem = 300 - ta.value.length;
       document.getElementById('char-remaining').textContent = rem;
     };
-  } else {
-    // Normal flow — go straight to victim count
-    state.otherDescription = null;
-    document.getElementById('victim-back-btn').onclick = () => goTo(3);
-    goTo(4);
+    return;
   }
+
+  // For regular symptoms, toggle add/remove from array
+  const idx = state.situations.indexOf(sit.val);
+  if (idx === -1) {
+    state.situations.push(sit.val);
+    state.situationLabels.push(sit.en);
+    btn.classList.add('selected');
+  } else {
+    state.situations.splice(idx, 1);
+    state.situationLabels.splice(idx, 1);
+    btn.classList.remove('selected');
+  }
+  updateContinueButton();
+}
+
+// ══ Update Continue button visibility/enabled state ════════════════════
+function updateContinueButton() {
+  const btn = document.getElementById('continue-symptoms-btn');
+  if (!btn) return;
+  if (state.situations.length > 0) {
+    btn.disabled = false;
+    btn.classList.remove('disabled');
+    const counter = document.getElementById('symptom-counter');
+    if (counter) counter.textContent = `${state.situations.length} selected`;
+  } else {
+    btn.disabled = true;
+    btn.classList.add('disabled');
+    const counter = document.getElementById('symptom-counter');
+    if (counter) counter.textContent = 'Select at least one';
+  }
+}
+
+// ══ Confirm symptoms and go to victim count ════════════════════════════
+function confirmSymptoms() {
+  if (state.situations.length === 0) return; // Should not happen if button disabled
+  state.otherDescription = null;
+  document.getElementById('victim-back-btn').onclick = () => goTo(3);
+  goTo(4);
 }
 
 // ══ Confirm "Other" description ════════════════════════════════════════
@@ -143,15 +182,11 @@ function selectCount(count) {
 }
 
 // ══ Photo — Camera ════════════════════════════════════════════════════
-// On mobile: opens the back camera directly
-// On desktop: opens a file picker (no camera available)
 function openCamera() {
   document.getElementById('input-camera').click();
 }
 
 // ══ Photo — Gallery ═══════════════════════════════════════════════════
-// On mobile: opens the photo library (no camera)
-// On desktop: opens a file picker
 function openGallery() {
   document.getElementById('input-gallery').click();
 }
@@ -170,7 +205,6 @@ function handlePhotoSelect(input) {
   };
   reader.readAsDataURL(file);
 
-  // Reset other input so the same file can be re-selected if needed
   document.getElementById('input-camera').value  = '';
   document.getElementById('input-gallery').value = '';
 }
@@ -216,11 +250,15 @@ async function sendAlert(lat, lng) {
     const name  = (document.getElementById('input-name')?.value  || '').trim();
     const phone = (document.getElementById('input-phone')?.value || '').trim();
 
-    // If user picked "Other", we append their description to the situation
-    // so the hospital sees it
-    const situationNote = state.otherDescription
-      ? `OTHER: ${state.otherDescription}`
-      : state.situation;
+    // Build situation string from selected symptoms
+    // For OTHER, include the description text
+    // Otherwise, send all selected symptoms as comma-separated
+    let situationNote;
+    if (state.otherDescription) {
+      situationNote = `OTHER: ${state.otherDescription}`;
+    } else {
+      situationNote = state.situations.join(',');
+    }
 
     let res;
 
@@ -361,8 +399,8 @@ function showNetworkError() {
 // ══ Reset everything ═══════════════════════════════════════════════════
 function resetApp() {
   state.type = null;
-  state.situation = null;
-  state.situationLabel = null;
+  state.situations = [];
+  state.situationLabels = [];
   state.otherDescription = null;
   state.count = null;
   state.alertId = null;
