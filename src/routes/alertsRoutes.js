@@ -9,7 +9,7 @@ const { requireAuth } = require('../middleware/authMiddleware');
 const { createAlert, confirmAlert, declineAlert, resolveAlert } = require('../controllers/alertsController');
 
 // ── Multer: save photos to /uploads/alerts/ ───────────────────────────
-const uploadDir = path.join(__dirname, '../../../uploads/alerts');
+const uploadDir = path.join(__dirname, '../../uploads/alerts');
 
 // Create folder if it doesn't exist
 if (!fs.existsSync(uploadDir)) {
