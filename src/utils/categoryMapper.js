@@ -232,7 +232,7 @@ const KEYWORD_RULES = [
   },
   {
     keywords: ['breath', 'respir', 'breathing', 'etouffe', 'suffoque', 'asthma', 'asthme'],
-    addEquipment: ['OXYGEN', 'NEBULIZER'],
+    addEquipment: ['OXYGEN'],
     addPersonnel: [],
     note: 'Respiratory keywords detected'
   },
