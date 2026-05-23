@@ -289,39 +289,47 @@ function showLoadingScreen() {
 }
 
 // ══ GPS capture ════════════════════════════════════════════════════════
-// Two-stage strategy:
+// Two-stage strategy with a "fire once" guard:
 //   1. Try FAST/low-accuracy first (works indoors via WiFi + cell towers).
-//   2. If that fails, try high-accuracy (GPS satellites) as a fallback.
-// This fixes the "Location needed" error that happened indoors where GPS
-// satellites are blocked by the building roof.
+//   2. If that fails OR is slow, try high-accuracy in parallel.
+// Whichever returns FIRST wins — and the guard ensures we send the alert
+// only ONCE, never twice, and never leave the screen stuck.
+let gpsAlreadySent = false;
+
 function captureGPSandSend() {
   if (!navigator.geolocation) { showGPSError(); return; }
 
-  // Stage 1: fast, low-accuracy — works indoors
-  navigator.geolocation.getCurrentPosition(
-    (pos) => sendAlert(pos.coords.latitude, pos.coords.longitude),
-    ()    => tryHighAccuracyGPS(),   // if low-accuracy fails, try satellites
-    {
-      timeout: 10000,
-      enableHighAccuracy: false,     // ← WiFi/cell towers, works indoors
-      maximumAge: 60000              // ← accept a position up to 1 min old
+  gpsAlreadySent = false;
+  let stage1Failed = false;
+  let stage2Failed = false;
+
+  // Helper — send the alert only the FIRST time we get a position
+  const onLocation = (pos) => {
+    if (gpsAlreadySent) return;       // already handled — ignore the slower one
+    gpsAlreadySent = true;
+    sendAlert(pos.coords.latitude, pos.coords.longitude);
+  };
+
+  // If BOTH stages fail, then show the error
+  const checkBothFailed = () => {
+    if (stage1Failed && stage2Failed && !gpsAlreadySent) {
+      showGPSError();
     }
+  };
+
+  // Stage 1: fast, low-accuracy — works indoors (WiFi + cell towers)
+  navigator.geolocation.getCurrentPosition(
+    onLocation,
+    () => { stage1Failed = true; checkBothFailed(); },
+    { timeout: 15000, enableHighAccuracy: false, maximumAge: 60000 }
   );
-}
 
-// Stage 2: high-accuracy fallback (GPS satellites — works best outdoors)
-function tryHighAccuracyGPS() {
-  const t = document.querySelector('.loading-text');
-  if (t) t.innerHTML = 'Getting precise location…<br>Localisation précise…';
-
+  // Stage 2: high-accuracy — runs IN PARALLEL (not after).
+  // Whichever finishes first wins thanks to the gpsAlreadySent guard.
   navigator.geolocation.getCurrentPosition(
-    (pos) => sendAlert(pos.coords.latitude, pos.coords.longitude),
-    ()    => showGPSError(),
-    {
-      timeout: 20000,
-      enableHighAccuracy: true,
-      maximumAge: 0
-    }
+    onLocation,
+    () => { stage2Failed = true; checkBothFailed(); },
+    { timeout: 20000, enableHighAccuracy: true, maximumAge: 30000 }
   );
 }
 
@@ -575,6 +583,7 @@ function resetApp() {
   state.count = null;
   state.alertId = null;
   state.photoFile = null;
+  gpsAlreadySent = false;
   if (state.socket) { state.socket.off(); state.socket = null; }
 
   // Clear form
