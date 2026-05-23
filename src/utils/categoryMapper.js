@@ -154,7 +154,7 @@ const SITUATION_REQUIREMENTS = {
 
   BREATHING_DIFFICULTY: {  // "Trouble breathing" — covers asthma, allergic, etc.
     medicalCategory: 'EMERGENCY_MEDICINE',
-    requiredEquipment: ['OXYGEN', 'NEBULIZER', 'EMERGENCY_BAY'],
+    requiredEquipment: ['OXYGEN', 'EMERGENCY_BAY'],  // NEBULIZER removed (not in any hospital; oxygen+bay handles it)
     requiredPersonnel: ['GENERAL_DOCTOR'],
     needsICU: false,
     suggestedPrep: {
