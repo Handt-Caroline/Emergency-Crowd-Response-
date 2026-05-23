@@ -289,12 +289,39 @@ function showLoadingScreen() {
 }
 
 // ══ GPS capture ════════════════════════════════════════════════════════
+// Two-stage strategy:
+//   1. Try FAST/low-accuracy first (works indoors via WiFi + cell towers).
+//   2. If that fails, try high-accuracy (GPS satellites) as a fallback.
+// This fixes the "Location needed" error that happened indoors where GPS
+// satellites are blocked by the building roof.
 function captureGPSandSend() {
   if (!navigator.geolocation) { showGPSError(); return; }
+
+  // Stage 1: fast, low-accuracy — works indoors
+  navigator.geolocation.getCurrentPosition(
+    (pos) => sendAlert(pos.coords.latitude, pos.coords.longitude),
+    ()    => tryHighAccuracyGPS(),   // if low-accuracy fails, try satellites
+    {
+      timeout: 10000,
+      enableHighAccuracy: false,     // ← WiFi/cell towers, works indoors
+      maximumAge: 60000              // ← accept a position up to 1 min old
+    }
+  );
+}
+
+// Stage 2: high-accuracy fallback (GPS satellites — works best outdoors)
+function tryHighAccuracyGPS() {
+  const t = document.querySelector('.loading-text');
+  if (t) t.innerHTML = 'Getting precise location…<br>Localisation précise…';
+
   navigator.geolocation.getCurrentPosition(
     (pos) => sendAlert(pos.coords.latitude, pos.coords.longitude),
     ()    => showGPSError(),
-    { timeout: 12000, enableHighAccuracy: true }
+    {
+      timeout: 20000,
+      enableHighAccuracy: true,
+      maximumAge: 0
+    }
   );
 }
 
@@ -314,8 +341,8 @@ async function sendAlert(lat, lng) {
       situationNote = state.situations.join(',');
     }
 
-    let res;
-
+    // Build the request (FormData if photo, JSON otherwise)
+    let fetchOptions;
     if (state.photoFile) {
       const form = new FormData();
       form.append('device_id',      generateDeviceId());
@@ -327,10 +354,9 @@ async function sendAlert(lat, lng) {
       if (name)  form.append('bystander_name',  name);
       if (phone) form.append('bystander_phone', phone);
       form.append('photo', state.photoFile, state.photoFile.name);
-      res = await fetch(`${API_URL}/api/alerts`, { method: 'POST', body: form });
-
+      fetchOptions = { method: 'POST', body: form };
     } else {
-      res = await fetch(`${API_URL}/api/alerts`, {
+      fetchOptions = {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
@@ -343,11 +369,14 @@ async function sendAlert(lat, lng) {
           bystander_name:  name  || undefined,
           bystander_phone: phone || undefined,
         })
-      });
+      };
     }
 
-    const data = await res.json();
-    if (!res.ok || !data.alertId) { showNetworkError(); return; }
+    // Send with automatic retry — handles brief network drops and
+    // the 1-2s window during a server restart.
+    const data = await sendWithRetry(`${API_URL}/api/alerts`, fetchOptions, 3);
+
+    if (!data || !data.alertId) { showNetworkError(); return; }
 
     state.alertId = data.alertId;
     joinAlertRoom(data.alertId);
@@ -356,6 +385,40 @@ async function sendAlert(lat, lng) {
     console.error('[ECRS] sendAlert error:', err);
     showNetworkError();
   }
+}
+
+// ══ Fetch with retry ═══════════════════════════════════════════════════
+// Tries up to maxAttempts times, waiting a bit longer between each.
+// This fixes the "cannot reach server" error caused by brief network
+// hiccups or a server that is restarting.
+async function sendWithRetry(url, options, maxAttempts) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) {
+        return await res.json();
+      }
+      // If server responded with an error status, do not retry (it is not a network issue)
+      if (res.status >= 400 && res.status < 500) {
+        const errData = await res.json().catch(() => ({}));
+        console.warn('[ECRS] Server rejected request:', res.status, errData);
+        return null;
+      }
+      // 5xx server error — worth retrying
+      console.warn(`[ECRS] Attempt ${attempt} got status ${res.status}, retrying...`);
+    } catch (err) {
+      // Network error (server unreachable) — retry
+      console.warn(`[ECRS] Attempt ${attempt} failed (network), retrying...`, err.message);
+    }
+
+    // Wait before next attempt (1s, then 2s, then 3s)
+    if (attempt < maxAttempts) {
+      const t = document.querySelector('.loading-text');
+      if (t) t.innerHTML = `Connecting… (try ${attempt + 1})<br>Connexion…`;
+      await new Promise(r => setTimeout(r, attempt * 1000));
+    }
+  }
+  return null;  // all attempts failed
 }
 
 // ══ Join socket room ═══════════════════════════════════════════════════
