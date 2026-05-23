@@ -195,18 +195,72 @@ function openGallery() {
 function handlePhotoSelect(input) {
   const file = input.files[0];
   if (!file) return;
-  state.photoFile = file;
 
+  // Compress the photo on the phone BEFORE storing/sending.
+  // Shrinks a 10MB camera photo to ~400KB so upload is fast and the
+  // server never chokes. The bystander notices nothing.
+  compressImage(file, 1280, 0.7).then(compressedBlob => {
+    state.photoFile = new File([compressedBlob], 'photo.jpg', { type: 'image/jpeg' });
+    showPhotoPreview(state.photoFile);
+  }).catch(err => {
+    console.warn('[ECRS] Compression failed, using original:', err);
+    state.photoFile = file;
+    showPhotoPreview(file);
+  });
+
+  document.getElementById('input-camera').value  = '';
+  document.getElementById('input-gallery').value = '';
+}
+
+// Show preview thumbnail from a file/blob
+function showPhotoPreview(fileOrBlob) {
   const reader = new FileReader();
   reader.onload = (e) => {
     document.getElementById('photo-preview').src = e.target.result;
     document.getElementById('photo-preview-wrap').style.display = 'flex';
     document.getElementById('photo-preview-wrap').style.flexDirection = 'column';
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(fileOrBlob);
+}
 
-  document.getElementById('input-camera').value  = '';
-  document.getElementById('input-gallery').value = '';
+// Compress an image using canvas. Resizes so the longest side is at most
+// maxSize px, re-encodes as JPEG at the given quality (0-1). Returns Promise<Blob>.
+function compressImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+
+      if (width > height && width > maxSize) {
+        height = Math.round(height * (maxSize / width));
+        width = maxSize;
+      } else if (height >= width && height > maxSize) {
+        width = Math.round(width * (maxSize / height));
+        height = maxSize;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error('toBlob null')),
+        'image/jpeg',
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Image load failed'));
+    };
+
+    img.src = url;
+  });
 }
 
 // ══ Remove photo ═══════════════════════════════════════════════════════
