@@ -11,7 +11,7 @@ const { getRequirements, getCombinedRequirements, getOtherWithKeywords } = requi
 class DispatchEngine {
 
   constructor() {
-    this.searchRadiusMetres = 10000; // 10km radius
+    this.searchRadiusMetres = 20000; // 20km radius (covers greater Yaounde incl. Nyom, Soa, Nkozoa)
     this.distanceWeight    = 0.6;
     this.capacityWeight    = 0.4;
     this.topNForBystander  = 3;      // Number of "backup" hospitals shown to bystander
@@ -33,14 +33,29 @@ class DispatchEngine {
     const situation = alert.situation || '';
     let requirements;
 
-    if (situation.startsWith('OTHER:')) {
-      const description = situation.substring(6).trim();
+    // Separate symptom part from optional " +DETAILS: ..." text
+    let symptomPart = situation;
+    let detailsText = '';
+    const detailsIdx = symptomPart.indexOf('+DETAILS:');
+    if (detailsIdx !== -1) {
+      detailsText = symptomPart.substring(detailsIdx + 9).trim();
+      symptomPart = symptomPart.substring(0, detailsIdx).trim();
+    }
+
+    if (symptomPart.startsWith('OTHER:')) {
+      const description = symptomPart.substring(6).trim();
       requirements = getOtherWithKeywords(description);
-    } else if (situation.includes(',')) {
-      const symptomList = situation.split(',').map(s => s.trim()).filter(Boolean);
+    } else if (symptomPart.includes(',')) {
+      const symptomList = symptomPart.split(',').map(s => s.trim()).filter(Boolean);
       requirements = getCombinedRequirements(symptomList);
+      if (detailsText) {
+        requirements = this.mergeReqs(requirements, getOtherWithKeywords(detailsText));
+      }
     } else {
-      requirements = getRequirements(situation);
+      requirements = getRequirements(symptomPart);
+      if (detailsText) {
+        requirements = this.mergeReqs(requirements, getOtherWithKeywords(detailsText));
+      }
     }
 
     // STEP 2: Get all hospitals within radius matching equipment + personnel
@@ -181,6 +196,17 @@ class DispatchEngine {
   // scoreHospital — combines distance + capacity into a single score
   // Higher score = better candidate
   // ────────────────────────────────────────────────────────────────────
+  // Merge two requirement objects (union of equipment + personnel)
+  mergeReqs(base, extra) {
+    return {
+      medicalCategory:   base.medicalCategory,
+      requiredEquipment: [...new Set([...(base.requiredEquipment||[]), ...(extra.requiredEquipment||[])])],
+      requiredPersonnel: [...new Set([...(base.requiredPersonnel||[]), ...(extra.requiredPersonnel||[])])],
+      needsICU:          base.needsICU || extra.needsICU || false,
+      suggestedPrep:     base.suggestedPrep || { en: [], fr: [] }
+    };
+  }
+
   scoreHospital(hospital) {
     const distanceKm = hospital.distance_metres / 1000;
 
