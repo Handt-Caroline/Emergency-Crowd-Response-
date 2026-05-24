@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <link rel='stylesheet' href='style.css'>
+  <title>ECRS Admin Panel</title>
+  
+</head>
+<body>
+  <header class='admin-header'>
+    <div class='admin-logo'>ECRS</div>
+    <div class='admin-name' id='admin-name'>Admin</div>
+    <button class='logout-btn' onclick='logout()'>Logout</button>
+  </header>
+
+  <div class='stats-bar'>
+    <div class='stat-card green'><div class='stat-num' id='stat-approved'>—</div><div class='stat-label'>Approved Hospitals</div></div>
+    <div class='stat-card yellow'><div class='stat-num' id='stat-pending'>—</div><div class='stat-label'>Pending Approval</div></div>
+    <div class='stat-card red'><div class='stat-num' id='stat-suspended'>—</div><div class='stat-label'>Suspended</div></div>
+    <div class='stat-card blue'><div class='stat-num' id='stat-alerts'>—</div><div class='stat-label'>Alerts Today</div></div>
+  </div>
+
+  <div class='tab-nav'>
+    <button class='tab-btn active' onclick='switchTab("hospitals",this)'>🏥 Hospitals</button>
+    <button class='tab-btn' onclick='switchTab("alerts",this)'>🚨 Alert History</button>
+  </div>
+
+  <!-- TAB: Hospitals -->
+  <div id='tab-hospitals' class='tab-panel active table-section'>
+    <div class='table-header'>
+      <div class='table-title'>Registered Hospitals</div>
+      <div class='filter-btns'>
+        <button class='filter-btn active' onclick='filterTable("all",this)'>All</button>
+        <button class='filter-btn' onclick='filterTable("pending",this)'>Pending</button>
+        <button class='filter-btn' onclick='filterTable("approved",this)'>Approved</button>
+        <button class='filter-btn' onclick='filterTable("suspended",this)'>Suspended</button>
+      </div>
+    </div>
+    <table class='hosp-table'>
+      <thead><tr><th>Hospital</th><th>Phone</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
+      <tbody id='hosp-tbody'><tr><td colspan='5' class='empty-state'>Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- TAB: Alerts -->
+  <div id='tab-alerts' class='tab-panel table-section'>
+    <div class='table-header'>
+      <div class='table-title'>Alert History — last 100 alerts</div>
+      <button class='refresh-btn' onclick='loadAlerts()'>↻ Refresh</button>
+    </div>
+    <table class='hosp-table alert-table'>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Type / Situation</th>
+          <th>Victims</th>
+          <th>Status</th>
+          <th>Confirmed by</th>
+          <th>Declined by</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody id='alerts-tbody'><tr><td colspan='7' class='empty-state'>Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <script src='admin.js'></script>
+</body>
+</html>

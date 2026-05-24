@@ -1,0 +1,15 @@
+{
+  "name": "ECRS — Emergency Response",
+  "short_name": "ECRS",
+  "start_url": "/bystander/",
+  "scope": "/bystander/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#e63946",
+  "orientation": "portrait",
+  "description": "Emergency Crowd Response System — One tap to alert the nearest hospital",
+  "icons": [
+    { "src": "/bystander/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/bystander/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

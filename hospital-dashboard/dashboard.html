@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <link rel='stylesheet' href='style.css'>
+  <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>
+  <title>ECRS — Hospital Dashboard</title>
+</head>
+<body>
+
+  <!-- ── HEADER ───────────────────────────────────────────────── -->
+  <header class='dash-header'>
+    <div class='dash-logo'>ECRS</div>
+    <div class='dash-hosp' id='hosp-name'>Loading...</div>
+    <span class='badge badge-ok' id='avail-badge' style='display:none'></span>
+    <span id='header-status-badge' class='status-pill' style='margin-left:8px'></span>
+    <button class='logout-btn' onclick='logout()' title='Logout'>
+      ⏻ Logout
+    </button>
+  </header>
+
+  <div class='dash-body'>
+
+    <!-- ── STANDBY ─────────────────────────────────────────────── -->
+    <div class='standby' id='standby'>
+      <div class='standby-pulse'></div>
+      <h2>System active — Waiting for alerts</h2>
+      <p style='color:var(--muted);font-size:14px'>Système actif — En attente d'alertes</p>
+    </div>
+
+    <!-- ── ALERT PANEL ─────────────────────────────────────────── -->
+    <div class='alert-panel' id='alert-panel'>
+      <div class='alert-banner' id='alert-banner'>
+        🚨 INCOMING EMERGENCY — URGENCE ENTRANTE 🚨
+      </div>
+      <div class='alert-body'>
+        <div class='alert-info'>
+          <div class='info-row'>
+            <span class='info-label'>TYPE</span>
+            <span class='info-val red' id='a-type'></span>
+          </div>
+          <div class='info-row'>
+            <span class='info-label'>SITUATION</span>
+            <span class='info-val red' id='a-sit'></span>
+          </div>
+          <div class='info-row'>
+            <span class='info-label'>VICTIMS</span>
+            <span class='info-val orange' id='a-vic'></span>
+          </div>
+          <div class='info-row'>
+            <span class='info-label'>DISTANCE</span>
+            <span class='info-val orange' id='a-dist'></span>
+          </div>
+          <div class='info-row'>
+            <span class='info-label'>CONTACT</span>
+            <span class='info-val' id='a-contact'></span>
+          </div>
+
+          <!-- Scene photo sent by bystander -->
+          <div class='info-row' id='photo-row' style='display:none;flex-direction:column;gap:8px;'>
+            <span class='info-label'>📷 SCENE PHOTO</span>
+            <div id='photo-container' style='width:100%;'>
+              <img id='alert-photo'
+                src=''
+                alt='Scene photo from bystander'
+                title='Click to view full size'
+                style='width:100%;max-height:220px;object-fit:cover;border-radius:10px;
+                       cursor:pointer;border:1px solid rgba(255,255,255,0.15);
+                       box-shadow:0 4px 20px rgba(0,0,0,0.4);'
+                onclick="window.open(this.src,'_blank')"
+              >
+              <div style='font-size:11px;color:#64748b;margin-top:4px;text-align:center;'>
+                Tap/click to open full size · Cliquez pour agrandir
+              </div>
+            </div>
+          </div>
+
+          <div class='prep-box'>
+            <div class='prep-title'>Suggested preparation / Préparation suggérée</div>
+            <div id='prep-list'></div>
+          </div>
+
+          <div class='action-row'>
+            <button class='btn-confirm' id='btn-confirm' onclick='confirmAlert()'>
+              ✔ CONFIRM — Direct patient here / Diriger le patient ici
+            </button>
+            <button class='btn-decline' onclick='declineAlert()'>✗ DECLINE</button>
+          </div>
+        </div>
+
+        <div>
+          <div id='map'></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BOTTOM CONTROLS ─────────────────────────────────────── -->
+    <!-- Tab nav -->
+    <div class='ctrl-tabs'>
+      <button class='ctrl-tab active' id='tab-btn-status'  onclick='switchTab("status")'>🏥 Status</button>
+      <button class='ctrl-tab'        id='tab-btn-profile' onclick='switchTab("profile")'>✏️ My Profile</button>
+      <button class='ctrl-tab'        id='tab-btn-history' onclick='switchTab("history")'>📋 Recent Cases</button>
+    </div>
+
+    <!-- STATUS tab -->
+    <div id='tab-status' class='ctrl-card tab-content active-tab'>
+      <div class='ctrl-title'>Hospital Status</div>
+      <div class='ctrl-row'>
+        <span class='ctrl-label'>Account Status</span>
+        <span id='account-status-badge' class='status-pill'></span>
+      </div>
+      <div class='ctrl-row'>
+        <span class='ctrl-label'>Free beds right now</span>
+        <input type='number' id='beds-input' class='ctrl-input' value='10' min='0' max='500'>
+      </div>
+      <button class='save-btn' onclick='saveCapacity()'>Save / Enregistrer</button>
+      <p style='font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5'>
+        🏥 Hospitals are always considered operational. Your account status is managed by the ECRS administrator.
+        <br>Les hôpitaux sont toujours considérés comme opérationnels. Votre statut est géré par l'administrateur ECRS.
+      </p>
+    </div>
+
+    <!-- PROFILE tab -->
+    <div id='tab-profile' class='ctrl-card tab-content' style='display:none'>
+      <div class='ctrl-title'>✏️ Edit Hospital Profile</div>
+      <p style='font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6'>
+        Keep your profile accurate. Equipment and personnel directly affect which emergencies the Dispatch Engine sends to you.
+      </p>
+
+      <div class='profile-grid'>
+
+        <!-- Left: basic info -->
+        <div class='profile-col'>
+          <div class='pfield-group'>
+            <label class='pfield-label'>Hospital Name *</label>
+            <input type='text' id='p-name' class='pfield-input' placeholder='e.g. City Hospital Central'>
+          </div>
+          <div class='pfield-group'>
+            <label class='pfield-label'>Phone Number</label>
+            <input type='tel' id='p-phone' class='pfield-input' placeholder='+237 6XX XXX XXX'>
+          </div>
+          <div class='pfield-group'>
+            <label class='pfield-label'>Address</label>
+            <input type='text' id='p-address' class='pfield-input' placeholder='Street, City, Region'>
+          </div>
+          <div style='display:flex;gap:12px'>
+            <div class='pfield-group' style='flex:1'>
+              <label class='pfield-label'>Total Beds</label>
+              <input type='number' id='p-total' class='pfield-input' min='1' max='5000' placeholder='e.g. 100'>
+            </div>
+            <div class='pfield-group' style='flex:1'>
+              <label class='pfield-label'>Free Beds Now</label>
+              <input type='number' id='p-free' class='pfield-input' min='0' max='5000' placeholder='e.g. 12'>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: equipment + personnel -->
+        <div class='profile-col'>
+          <div class='pfield-group'>
+            <label class='pfield-label'>
+              Equipment
+              <span style='font-size:11px;color:var(--muted);font-weight:400;margin-left:4px'>tick all you have</span>
+            </label>
+            <div class='check-grid' id='equipment-checks'></div>
+          </div>
+
+          <div class='pfield-group' style='margin-top:18px'>
+            <label class='pfield-label'>
+              Personnel
+              <span style='font-size:11px;color:var(--muted);font-weight:400;margin-left:4px'>tick all available</span>
+            </label>
+            <div class='check-grid' id='personnel-checks'></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style='margin-top:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap'>
+        <button class='save-btn' id='profile-save-btn' onclick='saveProfile()'>
+          💾 Save Profile
+        </button>
+        <span id='profile-msg' style='font-size:13px'></span>
+      </div>
+    </div>
+
+    <!-- HISTORY tab -->
+    <div id='tab-history' class='ctrl-card tab-content' style='display:none'>
+      <div class='ctrl-title'>📋 Recent Cases</div>
+      <div id='case-history'>
+        <p style='color:var(--muted);font-size:13px'>Loading...</p>
+      </div>
+    </div>
+
+  </div><!-- end dash-body -->
+
+  <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
+  <script src='/socket.io/socket.io.js'></script>
+  <script src='dashboard.js'></script>
+</body>
+</html>
