@@ -6,8 +6,8 @@ const API_URL = (typeof window !== 'undefined' && window.location.hostname !== '
 // ── State ──────────────────────────────────────────────────────────────
 const state = {
   type:             null,
-  situation:        null,
-  situationLabel:   null,   // human-readable, used for "Other" description
+  situations:       [],     // ARRAY of selected symptoms (multi-select)
+  situationLabels:  [],     // human-readable labels for selected symptoms
   otherDescription: null,   // free text when user picks "Other"
   count:            null,
   alertId:          null,
@@ -20,19 +20,21 @@ const state = {
 // ═══════════════════════════════════════════════════════════════════════
 const SITUATIONS = {
   MEDICAL: [
-    { emoji: '😵', en: 'Unconscious',        fr: 'Inconscient',       val: 'UNCONSCIOUS'       },
-    { emoji: '🫁', en: 'Not breathing',      fr: 'Ne respire pas',    val: 'NOT_BREATHING'     },
-    { emoji: '💔', en: 'Chest pain',         fr: 'Douleur thorax',    val: 'CHEST_PAIN'        },
-    { emoji: '🫀', en: 'Cardiac arrest',     fr: 'Arrêt cardiaque',   val: 'CARDIAC_ARREST'    },
-    { emoji: '🩸', en: 'Severe bleeding',    fr: 'Saignement grave',  val: 'SEVERE_BLEEDING'   },
-    { emoji: '🚗', en: 'Accident / Trauma',  fr: 'Accident',          val: 'ACCIDENT_TRAUMA'   },
-    { emoji: '🔥', en: 'Burn',               fr: 'Brûlure',           val: 'BURN'              },
-    { emoji: '🧠', en: 'Stroke / AVC',       fr: 'AVC',               val: 'STROKE'            },
-    { emoji: '⚡', en: 'Seizure',            fr: 'Convulsion',        val: 'SEIZURE'           },
-    { emoji: '👶', en: 'Child emergency',    fr: 'Urgence enfant',    val: 'CHILD_EMERGENCY'   },
-    { emoji: '🤰', en: 'Childbirth',         fr: 'Accouchement',      val: 'CHILDBIRTH'        },
-    { emoji: '🤧', en: 'Allergic reaction',  fr: 'Réaction allerg.',  val: 'ALLERGIC_REACTION' },
-    { emoji: '✏️', en: 'Other',              fr: 'Autre',             val: 'OTHER', isOther: true },
+    { emoji: '😵', en: 'Person collapsed',    fr: 'Personne effondrée', val: 'UNCONSCIOUS'           },
+    { emoji: '🫁', en: 'Not breathing',       fr: 'Ne respire pas',     val: 'NOT_BREATHING'         },
+    { emoji: '💔', en: 'Chest pain',          fr: 'Douleur thorax',     val: 'CHEST_PAIN'            },
+    { emoji: '🩸', en: 'Severe bleeding',     fr: 'Saignement grave',   val: 'SEVERE_BLEEDING'       },
+    { emoji: '🚗', en: 'Accident / Crash',    fr: 'Accident',           val: 'ACCIDENT_TRAUMA'       },
+    { emoji: '🔥', en: 'Burn',                fr: 'Brûlure',            val: 'BURN'                  },
+    { emoji: '😶', en: 'Face drooping',       fr: 'Visage tombant',     val: 'FACE_DROOPING'         },
+    { emoji: '🗣️', en: 'Slurred speech',      fr: 'Parole confuse',     val: 'SLURRED_SPEECH'        },
+    { emoji: '⚡', en: 'Body shaking',        fr: 'Convulsions',        val: 'SEIZURE'               },
+    { emoji: '🫨', en: 'Cold sweat / Pale',   fr: 'Sueur froide',       val: 'COLD_SWEAT'            },
+    { emoji: '👶', en: 'Child unconscious',   fr: 'Enfant inconscient', val: 'CHILD_EMERGENCY'       },
+    { emoji: '🤰', en: 'Childbirth / Labor',  fr: 'Accouchement',       val: 'CHILDBIRTH'            },
+    { emoji: '😷', en: 'Trouble breathing',   fr: 'Difficulté respirer',val: 'BREATHING_DIFFICULTY'  },
+    { emoji: '🤮', en: 'Vomiting blood',      fr: 'Vomit du sang',      val: 'VOMITING_BLOOD'        },
+    { emoji: '✏️', en: 'Other',               fr: 'Autre',              val: 'OTHER', isOther: true  },
   ],
   FIRE: [
     { emoji: '🏠', en: 'House fire',         fr: 'Incendie maison',   val: 'FIRE_BUILDING'     },
@@ -76,6 +78,10 @@ function showComingSoon(name) {
 // ══ Select emergency type ══════════════════════════════════════════════
 function selectType(type) {
   state.type = type;
+  // Reset selections when changing type
+  state.situations = [];
+  state.situationLabels = [];
+  updateContinueButton();
 
   // Build situation grid
   const container = document.getElementById('sit-buttons');
@@ -84,26 +90,25 @@ function selectType(type) {
   SITUATIONS[type].forEach(sit => {
     const btn = document.createElement('button');
     btn.className = sit.isOther ? 'sit-btn other-btn' : 'sit-btn';
+    btn.dataset.val = sit.val;
     btn.innerHTML = `
       <span class='sit-emoji'>${sit.emoji}</span>
       <strong>${sit.en}</strong><br>
       <span style='font-size:10px;color:var(--text-muted)'>${sit.fr}</span>
     `;
-    btn.onclick = () => selectSituation(sit);
+    btn.onclick = () => toggleSituation(sit, btn);
     container.appendChild(btn);
   });
 
   goTo(3);
 }
 
-// ══ Select situation ═══════════════════════════════════════════════════
-function selectSituation(sit) {
-  state.situation      = sit.val;
-  state.situationLabel = sit.en;
-
+// ══ Toggle situation selection (multi-select) ══════════════════════════
+function toggleSituation(sit, btn) {
+  // OTHER button always opens the description screen (single behavior)
   if (sit.isOther) {
-    // Go to free-text screen
-    // Victim back button should go back to 3b (other screen)
+    state.situations = ['OTHER'];
+    state.situationLabels = ['Other'];
     document.getElementById('victim-back-btn').onclick = () => goTo('3b');
     goTo('3b');
 
@@ -114,12 +119,46 @@ function selectSituation(sit) {
       const rem = 300 - ta.value.length;
       document.getElementById('char-remaining').textContent = rem;
     };
-  } else {
-    // Normal flow — go straight to victim count
-    state.otherDescription = null;
-    document.getElementById('victim-back-btn').onclick = () => goTo(3);
-    goTo(4);
+    return;
   }
+
+  // For regular symptoms, toggle add/remove from array
+  const idx = state.situations.indexOf(sit.val);
+  if (idx === -1) {
+    state.situations.push(sit.val);
+    state.situationLabels.push(sit.en);
+    btn.classList.add('selected');
+  } else {
+    state.situations.splice(idx, 1);
+    state.situationLabels.splice(idx, 1);
+    btn.classList.remove('selected');
+  }
+  updateContinueButton();
+}
+
+// ══ Update Continue button visibility/enabled state ════════════════════
+function updateContinueButton() {
+  const btn = document.getElementById('continue-symptoms-btn');
+  if (!btn) return;
+  if (state.situations.length > 0) {
+    btn.disabled = false;
+    btn.classList.remove('disabled');
+    const counter = document.getElementById('symptom-counter');
+    if (counter) counter.textContent = `${state.situations.length} selected`;
+  } else {
+    btn.disabled = true;
+    btn.classList.add('disabled');
+    const counter = document.getElementById('symptom-counter');
+    if (counter) counter.textContent = 'Select at least one';
+  }
+}
+
+// ══ Confirm symptoms and go to victim count ════════════════════════════
+function confirmSymptoms() {
+  if (state.situations.length === 0) return; // Should not happen if button disabled
+  state.otherDescription = null;
+  document.getElementById('victim-back-btn').onclick = () => goTo(3);
+  goTo(4);
 }
 
 // ══ Confirm "Other" description ════════════════════════════════════════
@@ -143,15 +182,11 @@ function selectCount(count) {
 }
 
 // ══ Photo — Camera ════════════════════════════════════════════════════
-// On mobile: opens the back camera directly
-// On desktop: opens a file picker (no camera available)
 function openCamera() {
   document.getElementById('input-camera').click();
 }
 
 // ══ Photo — Gallery ═══════════════════════════════════════════════════
-// On mobile: opens the photo library (no camera)
-// On desktop: opens a file picker
 function openGallery() {
   document.getElementById('input-gallery').click();
 }
@@ -160,19 +195,72 @@ function openGallery() {
 function handlePhotoSelect(input) {
   const file = input.files[0];
   if (!file) return;
-  state.photoFile = file;
 
+  // Compress the photo on the phone BEFORE storing/sending.
+  // Shrinks a 10MB camera photo to ~400KB so upload is fast and the
+  // server never chokes. The bystander notices nothing.
+  compressImage(file, 1280, 0.7).then(compressedBlob => {
+    state.photoFile = new File([compressedBlob], 'photo.jpg', { type: 'image/jpeg' });
+    showPhotoPreview(state.photoFile);
+  }).catch(err => {
+    console.warn('[ECRS] Compression failed, using original:', err);
+    state.photoFile = file;
+    showPhotoPreview(file);
+  });
+
+  document.getElementById('input-camera').value  = '';
+  document.getElementById('input-gallery').value = '';
+}
+
+// Show preview thumbnail from a file/blob
+function showPhotoPreview(fileOrBlob) {
   const reader = new FileReader();
   reader.onload = (e) => {
     document.getElementById('photo-preview').src = e.target.result;
     document.getElementById('photo-preview-wrap').style.display = 'flex';
     document.getElementById('photo-preview-wrap').style.flexDirection = 'column';
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(fileOrBlob);
+}
 
-  // Reset other input so the same file can be re-selected if needed
-  document.getElementById('input-camera').value  = '';
-  document.getElementById('input-gallery').value = '';
+// Compress an image using canvas. Resizes so the longest side is at most
+// maxSize px, re-encodes as JPEG at the given quality (0-1). Returns Promise<Blob>.
+function compressImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+
+      if (width > height && width > maxSize) {
+        height = Math.round(height * (maxSize / width));
+        width = maxSize;
+      } else if (height >= width && height > maxSize) {
+        width = Math.round(width * (maxSize / height));
+        height = maxSize;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error('toBlob null')),
+        'image/jpeg',
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Image load failed'));
+    };
+
+    img.src = url;
+  });
 }
 
 // ══ Remove photo ═══════════════════════════════════════════════════════
@@ -201,12 +289,47 @@ function showLoadingScreen() {
 }
 
 // ══ GPS capture ════════════════════════════════════════════════════════
+// Two-stage strategy with a "fire once" guard:
+//   1. Try FAST/low-accuracy first (works indoors via WiFi + cell towers).
+//   2. If that fails OR is slow, try high-accuracy in parallel.
+// Whichever returns FIRST wins — and the guard ensures we send the alert
+// only ONCE, never twice, and never leave the screen stuck.
+let gpsAlreadySent = false;
+
 function captureGPSandSend() {
   if (!navigator.geolocation) { showGPSError(); return; }
+
+  gpsAlreadySent = false;
+  let stage1Failed = false;
+  let stage2Failed = false;
+
+  // Helper — send the alert only the FIRST time we get a position
+  const onLocation = (pos) => {
+    if (gpsAlreadySent) return;       // already handled — ignore the slower one
+    gpsAlreadySent = true;
+    sendAlert(pos.coords.latitude, pos.coords.longitude);
+  };
+
+  // If BOTH stages fail, then show the error
+  const checkBothFailed = () => {
+    if (stage1Failed && stage2Failed && !gpsAlreadySent) {
+      showGPSError();
+    }
+  };
+
+  // Stage 1: fast, low-accuracy — works indoors (WiFi + cell towers)
   navigator.geolocation.getCurrentPosition(
-    (pos) => sendAlert(pos.coords.latitude, pos.coords.longitude),
-    ()    => showGPSError(),
-    { timeout: 12000, enableHighAccuracy: true }
+    onLocation,
+    () => { stage1Failed = true; checkBothFailed(); },
+    { timeout: 15000, enableHighAccuracy: false, maximumAge: 60000 }
+  );
+
+  // Stage 2: high-accuracy — runs IN PARALLEL (not after).
+  // Whichever finishes first wins thanks to the gpsAlreadySent guard.
+  navigator.geolocation.getCurrentPosition(
+    onLocation,
+    () => { stage2Failed = true; checkBothFailed(); },
+    { timeout: 20000, enableHighAccuracy: true, maximumAge: 30000 }
   );
 }
 
@@ -216,14 +339,18 @@ async function sendAlert(lat, lng) {
     const name  = (document.getElementById('input-name')?.value  || '').trim();
     const phone = (document.getElementById('input-phone')?.value || '').trim();
 
-    // If user picked "Other", we append their description to the situation
-    // so the hospital sees it
-    const situationNote = state.otherDescription
-      ? `OTHER: ${state.otherDescription}`
-      : state.situation;
+    // Build situation string from selected symptoms
+    // For OTHER, include the description text
+    // Otherwise, send all selected symptoms as comma-separated
+    let situationNote;
+    if (state.otherDescription) {
+      situationNote = `OTHER: ${state.otherDescription}`;
+    } else {
+      situationNote = state.situations.join(',');
+    }
 
-    let res;
-
+    // Build the request (FormData if photo, JSON otherwise)
+    let fetchOptions;
     if (state.photoFile) {
       const form = new FormData();
       form.append('device_id',      generateDeviceId());
@@ -235,10 +362,9 @@ async function sendAlert(lat, lng) {
       if (name)  form.append('bystander_name',  name);
       if (phone) form.append('bystander_phone', phone);
       form.append('photo', state.photoFile, state.photoFile.name);
-      res = await fetch(`${API_URL}/api/alerts`, { method: 'POST', body: form });
-
+      fetchOptions = { method: 'POST', body: form };
     } else {
-      res = await fetch(`${API_URL}/api/alerts`, {
+      fetchOptions = {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
@@ -251,11 +377,14 @@ async function sendAlert(lat, lng) {
           bystander_name:  name  || undefined,
           bystander_phone: phone || undefined,
         })
-      });
+      };
     }
 
-    const data = await res.json();
-    if (!res.ok || !data.alertId) { showNetworkError(); return; }
+    // Send with automatic retry — handles brief network drops and
+    // the 1-2s window during a server restart.
+    const data = await sendWithRetry(`${API_URL}/api/alerts`, fetchOptions, 3);
+
+    if (!data || !data.alertId) { showNetworkError(); return; }
 
     state.alertId = data.alertId;
     joinAlertRoom(data.alertId);
@@ -266,10 +395,47 @@ async function sendAlert(lat, lng) {
   }
 }
 
+// ══ Fetch with retry ═══════════════════════════════════════════════════
+// Tries up to maxAttempts times, waiting a bit longer between each.
+// This fixes the "cannot reach server" error caused by brief network
+// hiccups or a server that is restarting.
+async function sendWithRetry(url, options, maxAttempts) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) {
+        return await res.json();
+      }
+      // If server responded with an error status, do not retry (it is not a network issue)
+      if (res.status >= 400 && res.status < 500) {
+        const errData = await res.json().catch(() => ({}));
+        console.warn('[ECRS] Server rejected request:', res.status, errData);
+        return null;
+      }
+      // 5xx server error — worth retrying
+      console.warn(`[ECRS] Attempt ${attempt} got status ${res.status}, retrying...`);
+    } catch (err) {
+      // Network error (server unreachable) — retry
+      console.warn(`[ECRS] Attempt ${attempt} failed (network), retrying...`, err.message);
+    }
+
+    // Wait before next attempt (1s, then 2s, then 3s)
+    if (attempt < maxAttempts) {
+      const t = document.querySelector('.loading-text');
+      if (t) t.innerHTML = `Connecting… (try ${attempt + 1})<br>Connexion…`;
+      await new Promise(r => setTimeout(r, attempt * 1000));
+    }
+  }
+  return null;  // all attempts failed
+}
+
 // ══ Join socket room ═══════════════════════════════════════════════════
 function joinAlertRoom(alertId) {
   if (!state.socket) state.socket = io(API_URL);
   state.socket.emit('join_alert_room', alertId);
+
+  // When alert is dispatched, server sends top 3 hospital list immediately
+  state.socket.on('alert:dispatched', (data) => showDispatchedTop3(data));
 
   state.socket.on('alert:confirmed',  (guidance) => showGuidance(guidance));
   state.socket.on('alert:reassigned', () => {
@@ -277,6 +443,56 @@ function joinAlertRoom(alertId) {
     if (t) t.innerHTML = 'Contacting next hospital…<br>Contacte le prochain hôpital…';
   });
   state.socket.on('alert:failed', (data) => showFailed(data));
+}
+
+// ══ Dispatched (waiting for hospital to confirm — show top 3 immediately) ══
+function showDispatchedTop3(data) {
+  const primary = data.primary;
+  const backups = data.backups || [];
+
+  const primaryMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${primary.latitude},${primary.longitude}`;
+
+  const backupCardsHtml = backups.length === 0 ? '' : `
+    <div class='backup-section'>
+      <div class='backup-title'>📋 Backup options / Options de secours</div>
+      <div class='backup-list'>
+        ${backups.map((h, i) => `
+          <div class='backup-card'>
+            <div class='backup-rank'>${i + 2}</div>
+            <div class='backup-info'>
+              <div class='backup-name'>${h.name}</div>
+              <div class='backup-meta'>📍 ${h.distance_km} km · ${h.free_capacity} beds</div>
+            </div>
+            <a href='https://www.google.com/maps/dir/?api=1&destination=${h.latitude},${h.longitude}'
+               target='_blank' class='backup-maps'>🗺️</a>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('screen6-content').innerHTML = `
+    <div class='guidance-card'>
+      <div class='dispatch-pending'>
+        <div class='pulse-dot'></div>
+        <span>Awaiting hospital confirmation...</span>
+      </div>
+      <div class='guidance-hospital-name'>${primary.name}</div>
+      <div class='guidance-dist'>📍 ${primary.distance_km} km — selected as best match</div>
+      <div class='dispatch-info'>
+        <span style='font-size:18px'>⏳</span>
+        <span>Alert sent. ${primary.name} is reviewing now.<br>
+        <em style='color:var(--text-muted)'>Alerte envoyée. ${primary.name} examine maintenant.</em></span>
+      </div>
+      <a href='${primaryMapsUrl}' target='_blank' class='maps-btn'>
+        🗺️ Get Directions to ${primary.name}
+      </a>
+      ${primary.phone
+        ? `<a href='tel:${primary.phone}' class='call-btn'>📞 Call Hospital</a>`
+        : ''}
+      ${backupCardsHtml}
+    </div>
+  `;
 }
 
 // ══ Guidance (confirmed) ═══════════════════════════════════════════════
@@ -361,12 +577,13 @@ function showNetworkError() {
 // ══ Reset everything ═══════════════════════════════════════════════════
 function resetApp() {
   state.type = null;
-  state.situation = null;
-  state.situationLabel = null;
+  state.situations = [];
+  state.situationLabels = [];
   state.otherDescription = null;
   state.count = null;
   state.alertId = null;
   state.photoFile = null;
+  gpsAlreadySent = false;
   if (state.socket) { state.socket.off(); state.socket = null; }
 
   // Clear form
@@ -393,7 +610,7 @@ function generateDeviceId() {
 
 // ══ Service Worker ═════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
+  navigator.serviceWorker.register('/bystander/sw.js')
     .then(() => console.log('[ECRS] SW registered'))
     .catch(err => console.log('[ECRS] SW error:', err));
 }
