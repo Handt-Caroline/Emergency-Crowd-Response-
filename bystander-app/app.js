@@ -29,7 +29,7 @@ const SITUATIONS = {
     { emoji: '😶', en: 'Face drooping',       fr: 'Visage tombant',     val: 'FACE_DROOPING'         },
     { emoji: '🗣️', en: 'Slurred speech',      fr: 'Parole confuse',     val: 'SLURRED_SPEECH'        },
     { emoji: '⚡', en: 'Body shaking',        fr: 'Convulsions',        val: 'SEIZURE'               },
-    { emoji: '🫨', en: 'Cold sweat / Pale',   fr: 'Sueur froide',       val: 'COLD_SWEAT'            },
+   { emoji: '💧', en: 'Cold sweat / Pale',   fr: 'Sueur froide',       val: 'COLD_SWEAT'            },
     { emoji: '👶', en: 'Child unconscious',   fr: 'Enfant inconscient', val: 'CHILD_EMERGENCY'       },
     { emoji: '🤰', en: 'Childbirth / Labor',  fr: 'Accouchement',       val: 'CHILDBIRTH'            },
     { emoji: '😷', en: 'Trouble breathing',   fr: 'Difficulté respirer',val: 'BREATHING_DIFFICULTY'  },
