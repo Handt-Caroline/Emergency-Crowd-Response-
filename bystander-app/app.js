@@ -21,7 +21,7 @@ const state = {
 const SITUATIONS = {
   MEDICAL: [
     { emoji: '😵', en: 'Person collapsed',    fr: 'Personne effondrée', val: 'UNCONSCIOUS'           },
-    { emoji: '🫁', en: 'Not breathing',       fr: 'Ne respire pas',     val: 'NOT_BREATHING'         },
+{ emoji: '😮‍💨', en: 'Not breathing',       fr: 'Ne respire pas',     val: 'NOT_BREATHING'         },
     { emoji: '💔', en: 'Chest pain',          fr: 'Douleur thorax',     val: 'CHEST_PAIN'            },
     { emoji: '🩸', en: 'Severe bleeding',     fr: 'Saignement grave',   val: 'SEVERE_BLEEDING'       },
     { emoji: '🚗', en: 'Accident / Crash',    fr: 'Accident',           val: 'ACCIDENT_TRAUMA'       },
