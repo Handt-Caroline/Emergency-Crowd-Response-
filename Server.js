@@ -29,6 +29,14 @@ app.use('/api/alerts',       require('./src/routes/alertsRoutes'));
 app.use('/api/institutions', require('./src/routes/institutionRoutes'));  // ← WAS MISSING
 //app.use('/api',              require('./src/routes/testRoutes'));
 
+// ── API DOCUMENTATION (Swagger / OpenAPI) ─────────────────────────
+// Interactive API docs available at /api-docs
+const swaggerUi   = require('swagger-ui-express');
+const swaggerSpec = require('./src/config/swagger');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'ECRS API Documentation'
+}));
+
 
 // ── SERVE FRONTEND PAGES ──────────────────────────────────────────
 app.use('/bystander', express.static(path.join(__dirname, 'bystander-app')));
