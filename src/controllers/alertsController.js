@@ -126,6 +126,19 @@ async function createAlert(req, res) {
       [alertId, hospital.id]
     );
 
+    // Decrement free_capacity now that a bed is being used
+    await pool.execute(
+      `UPDATE institutions
+       SET free_capacity = free_capacity - 1
+       WHERE id = ? AND free_capacity > 0`,
+      [institutionId]
+    );
+
+    await pool.execute(
+      "UPDATE alerts SET status = 'CONFIRMED' WHERE id = ?",
+      [alertId]
+    );
+
     await pool.execute(
       "UPDATE alerts SET status = 'DISPATCHED' WHERE id = ?",
       [alertId]
@@ -155,6 +168,7 @@ async function createAlert(req, res) {
     }
 
     // ── Emit alarm to the winning hospital ──
+    // ── Emit alarm to the winning hospital ──
     console.log(`[ALERT] 📡 Emitting emergency:new to institution_room_${hospital.id} (${hospital.name})`);
     io.to(`institution_room_${hospital.id}`).emit('emergency:new', {
       alertId,
@@ -164,13 +178,95 @@ async function createAlert(req, res) {
       victims_count:     victims_count || 'UNKNOWN',
       bystander_name:    bystander_name  || null,
       bystander_phone:   bystander_phone || null,
-      photo_url:         photoUrl,         // ← passed to hospital dashboard
+      photo_url:         photoUrl,
       latitude:          lat,
       longitude:         lng,
       distance_metres:   Math.round(hospital.distance_metres),
       suggestedPrepFr,
       suggestedPrepEn
     });
+
+    // ── Auto-timeout: if hospital does not respond in 60 seconds, re-dispatch ──
+    setTimeout(async () => {
+      try {
+        // Check if this alert is still waiting (DISPATCHED = no confirm, no decline yet)
+        const [check] = await pool.execute(
+          "SELECT status FROM alerts WHERE id = ? AND status = 'DISPATCHED'",
+          [alertId]
+        );
+
+        // If status is still DISPATCHED after 60s, the hospital did not respond
+        if (check.length > 0) {
+          console.log(`[TIMEOUT] ⏰ Alert #${alertId} — hospital ${hospital.id} did not respond in 60s. Re-dispatching...`);
+
+          // Mark this hospital as having timed out (treat as declined)
+          await pool.execute(
+            `UPDATE assignments
+             SET declined_at = NOW()
+             WHERE alert_id = ? AND institution_id = ? AND declined_at IS NULL AND confirmed_at IS NULL`,
+            [alertId, hospital.id]
+          );
+
+          // Find the next best hospital (excluding the one that timed out)
+          const nextHospital = await DispatchEngine.findBestHospital(
+            { latitude: lat, longitude: lng, situation },
+            [hospital.id]
+          );
+
+          if (!nextHospital) {
+            // No other hospital available — tell bystander to call emergency services
+            console.log(`[TIMEOUT] ❌ Alert #${alertId} — no other hospital available after timeout.`);
+            await pool.execute(
+              "UPDATE alerts SET status = 'FAILED' WHERE id = ?",
+              [alertId]
+            );
+            io.to(`alert_room_${alertId}`).emit('alert:failed', {
+              message:    'No hospital responded. Please call emergency services immediately.',
+              message_fr: 'Aucun hôpital n\'a répondu. Appelez les secours immédiatement.',
+              emergency_numbers: [
+                { name: 'SAMU',        number: '15'  },
+                { name: 'Croix-Rouge', number: '117' },
+                { name: 'Police',      number: '17'  }
+              ]
+            });
+            return;
+          }
+
+          // Save the new assignment
+          await pool.execute(
+            'INSERT INTO assignments (alert_id, institution_id) VALUES (?, ?)',
+            [alertId, nextHospital.id]
+          );
+
+          // Tell bystander a new hospital is being contacted
+          io.to(`alert_room_${alertId}`).emit('alert:reassigned', {
+            message:    'Contacting next hospital...',
+            message_fr: 'Contacte le prochain hôpital...'
+          });
+
+          // Ring the next hospital
+          io.to(`institution_room_${nextHospital.id}`).emit('emergency:new', {
+            alertId,
+            emergency_type,
+            situation,
+            medical_category:  medicalCategory,
+            victims_count:     victims_count || 'UNKNOWN',
+            bystander_name:    bystander_name  || null,
+            bystander_phone:   bystander_phone || null,
+            photo_url:         photoUrl,
+            latitude:          lat,
+            longitude:         lng,
+            distance_metres:   Math.round(nextHospital.distance_metres),
+            suggestedPrepFr,
+            suggestedPrepEn
+          });
+
+          console.log(`[TIMEOUT] ✅ Alert #${alertId} re-dispatched to ${nextHospital.name}`);
+        }
+      } catch (timeoutErr) {
+        console.error('[TIMEOUT] Error during auto re-dispatch:', timeoutErr.message);
+      }
+    }, 60000); // 60 seconds
 
     return res.status(201).json({ alertId, dispatched: true });
 
