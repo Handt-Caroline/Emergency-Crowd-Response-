@@ -9,8 +9,6 @@ const {
 
 // ══════════════════════════════════════════════════════════════════
 // POST /api/alerts
-// ── Called by the bystander ──
-// Accepts JSON or multipart/form-data (when photo is included)
 // ══════════════════════════════════════════════════════════════════
 async function createAlert(req, res) {
   try {
@@ -25,7 +23,6 @@ async function createAlert(req, res) {
       longitude
     } = req.body;
 
-    // ── Validate ──
     if (!device_id || !emergency_type || !situation || !latitude || !longitude) {
       return res.status(400).json({
         error:    'Missing required fields: device_id, emergency_type, situation, latitude, longitude',
@@ -36,18 +33,11 @@ async function createAlert(req, res) {
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
 
-    // ── Handle optional photo ──
-    // If multer saved a file, build the public URL for it
     let photoUrl = null;
     if (req.file) {
-      // e.g. /uploads/alerts/alert_1234567890_abc123.jpg
       photoUrl = `/uploads/alerts/${req.file.filename}`;
     }
 
-    // ── Derive medical category from situation ──
-    // Marie's enhancements:
-    //   • Multi-select: situation may be "CHEST_PAIN,COLD_SWEAT" (comma-separated)
-    //   • OTHER: situation may be "OTHER: <free text>" — scan keywords
     let requirements;
     if (situation && situation.startsWith('OTHER:')) {
       const description = situation.substring(6).trim();
@@ -60,7 +50,6 @@ async function createAlert(req, res) {
     }
     const medicalCategory = requirements.medicalCategory;
 
-    // ── Save the alert to database ──
     const [result] = await pool.execute(
       `INSERT INTO alerts
        (device_id, bystander_name, bystander_phone,
@@ -93,20 +82,18 @@ async function createAlert(req, res) {
     if (photoUrl)        console.log(`[ALERT]    Photo     : ${photoUrl}`);
     console.log(`[ALERT]    Running dispatch engine...\n`);
 
-    // ── Run dispatch engine ──
     const hospital = await DispatchEngine.findBestHospital(
       { latitude: lat, longitude: lng, situation }
     );
 
-    // ── No hospital found ──
+    const io = req.app.get('io');
+
     if (!hospital) {
-      console.log(`[ALERT] ❌ Alert #${alertId} — no hospital available. Notifying bystander.`);
+      console.log(`[ALERT] ❌ Alert #${alertId} — no hospital available.`);
       await pool.execute(
         "UPDATE alerts SET status = 'FAILED' WHERE id = ?",
         [alertId]
       );
-
-      const io = req.app.get('io');
       io.to(`alert_room_${alertId}`).emit('alert:failed', {
         message:    'No hospital available near you. Call emergency services.',
         message_fr: 'Aucun hôpital disponible. Appelez les secours.',
@@ -116,7 +103,6 @@ async function createAlert(req, res) {
           { name: 'Police',      number: '17'  }
         ]
       });
-
       return res.status(201).json({ alertId, dispatched: false });
     }
 
@@ -126,17 +112,12 @@ async function createAlert(req, res) {
       [alertId, hospital.id]
     );
 
-    // Decrement free_capacity now that a bed is being used
+    // ── BUG FIX: was "institutionId" (undefined). Correct variable is hospital.id ──
     await pool.execute(
       `UPDATE institutions
        SET free_capacity = free_capacity - 1
        WHERE id = ? AND free_capacity > 0`,
-      [institutionId]
-    );
-
-    await pool.execute(
-      "UPDATE alerts SET status = 'CONFIRMED' WHERE id = ?",
-      [alertId]
+      [hospital.id]
     );
 
     await pool.execute(
@@ -144,31 +125,26 @@ async function createAlert(req, res) {
       [alertId]
     );
 
-    // ── Build suggested preparation ──
     const suggestedPrepFr = getSuggestedPrep(situation, 'fr');
     const suggestedPrepEn = getSuggestedPrep(situation, 'en');
 
-    // ── Send TOP 3 hospital list to bystander as info (backup options) ──
-    const io = req.app.get('io');
     if (Array.isArray(hospital.top3) && hospital.top3.length > 0) {
-      console.log(`[ALERT] 📋 Sending top ${hospital.top3.length} hospitals to bystander (alert_room_${alertId})`);
+      console.log(`[ALERT] 📋 Sending top ${hospital.top3.length} hospitals to bystander`);
       io.to(`alert_room_${alertId}`).emit('alert:dispatched', {
         alertId,
         primary: {
-          id:            hospital.id,
-          name:          hospital.name,
-          distance_km:   Number((hospital.distance_metres / 1000).toFixed(2)),
-          phone:         hospital.phone || null,
-          latitude:      Number(hospital.latitude),
-          longitude:     Number(hospital.longitude)
+          id:          hospital.id,
+          name:        hospital.name,
+          distance_km: Number((hospital.distance_metres / 1000).toFixed(2)),
+          phone:       hospital.phone || null,
+          latitude:    Number(hospital.latitude),
+          longitude:   Number(hospital.longitude)
         },
-        backups:    hospital.top3.slice(1),  // 2nd and 3rd hospitals
-        topAll:     hospital.top3            // full list (1st = primary, 2-3 = backups)
+        backups: hospital.top3.slice(1),
+        topAll:  hospital.top3
       });
     }
 
-    // ── Emit alarm to the winning hospital ──
-    // ── Emit alarm to the winning hospital ──
     console.log(`[ALERT] 📡 Emitting emergency:new to institution_room_${hospital.id} (${hospital.name})`);
     io.to(`institution_room_${hospital.id}`).emit('emergency:new', {
       alertId,
@@ -186,20 +162,17 @@ async function createAlert(req, res) {
       suggestedPrepEn
     });
 
-    // ── Auto-timeout: if hospital does not respond in 60 seconds, re-dispatch ──
+    // ── Auto-timeout: 60 seconds ──
     setTimeout(async () => {
       try {
-        // Check if this alert is still waiting (DISPATCHED = no confirm, no decline yet)
         const [check] = await pool.execute(
           "SELECT status FROM alerts WHERE id = ? AND status = 'DISPATCHED'",
           [alertId]
         );
 
-        // If status is still DISPATCHED after 60s, the hospital did not respond
         if (check.length > 0) {
           console.log(`[TIMEOUT] ⏰ Alert #${alertId} — hospital ${hospital.id} did not respond in 60s. Re-dispatching...`);
 
-          // Mark this hospital as having timed out (treat as declined)
           await pool.execute(
             `UPDATE assignments
              SET declined_at = NOW()
@@ -207,22 +180,20 @@ async function createAlert(req, res) {
             [alertId, hospital.id]
           );
 
-          // Find the next best hospital (excluding the one that timed out)
           const nextHospital = await DispatchEngine.findBestHospital(
             { latitude: lat, longitude: lng, situation },
             [hospital.id]
           );
 
           if (!nextHospital) {
-            // No other hospital available — tell bystander to call emergency services
-            console.log(`[TIMEOUT] ❌ Alert #${alertId} — no other hospital available after timeout.`);
+            console.log(`[TIMEOUT] ❌ Alert #${alertId} — no other hospital after timeout.`);
             await pool.execute(
               "UPDATE alerts SET status = 'FAILED' WHERE id = ?",
               [alertId]
             );
             io.to(`alert_room_${alertId}`).emit('alert:failed', {
               message:    'No hospital responded. Please call emergency services immediately.',
-              message_fr: 'Aucun hôpital n\'a répondu. Appelez les secours immédiatement.',
+              message_fr: "Aucun hôpital n'a répondu. Appelez les secours immédiatement.",
               emergency_numbers: [
                 { name: 'SAMU',        number: '15'  },
                 { name: 'Croix-Rouge', number: '117' },
@@ -232,19 +203,16 @@ async function createAlert(req, res) {
             return;
           }
 
-          // Save the new assignment
           await pool.execute(
             'INSERT INTO assignments (alert_id, institution_id) VALUES (?, ?)',
             [alertId, nextHospital.id]
           );
 
-          // Tell bystander a new hospital is being contacted
           io.to(`alert_room_${alertId}`).emit('alert:reassigned', {
             message:    'Contacting next hospital...',
             message_fr: 'Contacte le prochain hôpital...'
           });
 
-          // Ring the next hospital
           io.to(`institution_room_${nextHospital.id}`).emit('emergency:new', {
             alertId,
             emergency_type,
@@ -266,7 +234,7 @@ async function createAlert(req, res) {
       } catch (timeoutErr) {
         console.error('[TIMEOUT] Error during auto re-dispatch:', timeoutErr.message);
       }
-    }, 60000); // 60 seconds
+    }, 60000);
 
     return res.status(201).json({ alertId, dispatched: true });
 
@@ -277,7 +245,7 @@ async function createAlert(req, res) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// PATCH /api/alerts/:id/confirm  — Called by the hospital
+// PATCH /api/alerts/:id/confirm
 // ══════════════════════════════════════════════════════════════════
 async function confirmAlert(req, res) {
   try {
@@ -295,18 +263,14 @@ async function confirmAlert(req, res) {
       'SELECT id, name, address, phone, latitude, longitude FROM institutions WHERE id = ?',
       [institutionId]
     );
-    if (hospRows.length === 0) {
-      return res.status(404).json({ error: 'Hospital not found' });
-    }
+    if (hospRows.length === 0) return res.status(404).json({ error: 'Hospital not found' });
     const hosp = hospRows[0];
 
     const [alertRows] = await pool.execute(
       'SELECT latitude, longitude FROM alerts WHERE id = ?',
       [alertId]
     );
-    if (alertRows.length === 0) {
-      return res.status(404).json({ error: 'Alert not found' });
-    }
+    if (alertRows.length === 0) return res.status(404).json({ error: 'Alert not found' });
     const alert = alertRows[0];
 
     const [distRows] = await pool.execute(
@@ -331,13 +295,12 @@ async function confirmAlert(req, res) {
       hospital_lat:     hosp.latitude,
       hospital_lng:     hosp.longitude,
       distance_km:      distKm,
-      message:          `Go to ${hosp.name} now. Nearest hospital with the right equipment — ${distKm}km away. They have been notified.`,
-      message_fr:       `Allez à ${hosp.name} maintenant. Hôpital le plus proche avec le bon équipement — ${distKm}km. Ils ont été notifiés.`
+      message:          `Go to ${hosp.name} now. Nearest hospital — ${distKm}km away.`,
+      message_fr:       `Allez à ${hosp.name} maintenant. ${distKm}km. Ils ont été notifiés.`
     };
 
     const io = req.app.get('io');
-    console.log(`\n[CONFIRM] ✅ Alert #${alertId} confirmed by ${hosp.name}`);
-    console.log(`[CONFIRM]    Bystander directed → ${hosp.name} (${distKm}km)\n`);
+    console.log(`\n[CONFIRM] ✅ Alert #${alertId} confirmed by ${hosp.name} (${distKm}km)\n`);
     io.to(`alert_room_${alertId}`).emit('alert:confirmed', guidance);
 
     await pool.execute(
@@ -354,7 +317,7 @@ async function confirmAlert(req, res) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// PATCH /api/alerts/:id/decline  — Called by the hospital
+// PATCH /api/alerts/:id/decline
 // ══════════════════════════════════════════════════════════════════
 async function declineAlert(req, res) {
   try {
@@ -433,7 +396,7 @@ async function declineAlert(req, res) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// PATCH /api/alerts/:id/resolve  — Called by the hospital
+// PATCH /api/alerts/:id/resolve
 // ══════════════════════════════════════════════════════════════════
 async function resolveAlert(req, res) {
   try {
