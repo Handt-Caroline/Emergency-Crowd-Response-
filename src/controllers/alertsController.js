@@ -8,7 +8,7 @@ const {
 } = require('../utils/categoryMapper');
 
 // ══════════════════════════════════════════════════════════════════
-// POST /api/alerts
+// POST /api/alerts  — Called by the bystander
 // ══════════════════════════════════════════════════════════════════
 async function createAlert(req, res) {
   try {
@@ -106,18 +106,12 @@ async function createAlert(req, res) {
       return res.status(201).json({ alertId, dispatched: false });
     }
 
-    // ── Hospital found — save assignment ──
+    // Save assignment — NO capacity decrement here.
+    // Capacity only decrements when the hospital CONFIRMS (not just when dispatched).
+    // If they decline, the capacity must not change at all.
     await pool.execute(
       'INSERT INTO assignments (alert_id, institution_id) VALUES (?, ?)',
       [alertId, hospital.id]
-    );
-
-    // ── BUG FIX: was "institutionId" (undefined). Correct variable is hospital.id ──
-    await pool.execute(
-      `UPDATE institutions
-       SET free_capacity = free_capacity - 1
-       WHERE id = ? AND free_capacity > 0`,
-      [hospital.id]
     );
 
     await pool.execute(
@@ -129,7 +123,6 @@ async function createAlert(req, res) {
     const suggestedPrepEn = getSuggestedPrep(situation, 'en');
 
     if (Array.isArray(hospital.top3) && hospital.top3.length > 0) {
-      console.log(`[ALERT] 📋 Sending top ${hospital.top3.length} hospitals to bystander`);
       io.to(`alert_room_${alertId}`).emit('alert:dispatched', {
         alertId,
         primary: {
@@ -162,7 +155,7 @@ async function createAlert(req, res) {
       suggestedPrepEn
     });
 
-    // ── Auto-timeout: 60 seconds ──
+    // Auto-timeout: 60 seconds — if hospital doesn't respond, try next
     setTimeout(async () => {
       try {
         const [check] = await pool.execute(
@@ -171,12 +164,13 @@ async function createAlert(req, res) {
         );
 
         if (check.length > 0) {
-          console.log(`[TIMEOUT] ⏰ Alert #${alertId} — hospital ${hospital.id} did not respond in 60s. Re-dispatching...`);
+          console.log(`[TIMEOUT] ⏰ Alert #${alertId} — hospital ${hospital.id} did not respond. Re-dispatching...`);
 
           await pool.execute(
             `UPDATE assignments
              SET declined_at = NOW()
-             WHERE alert_id = ? AND institution_id = ? AND declined_at IS NULL AND confirmed_at IS NULL`,
+             WHERE alert_id = ? AND institution_id = ?
+               AND declined_at IS NULL AND confirmed_at IS NULL`,
             [alertId, hospital.id]
           );
 
@@ -245,7 +239,8 @@ async function createAlert(req, res) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// PATCH /api/alerts/:id/confirm
+// PATCH /api/alerts/:id/confirm  — Called by the hospital
+// Capacity decrements HERE — only when hospital actually accepts.
 // ══════════════════════════════════════════════════════════════════
 async function confirmAlert(req, res) {
   try {
@@ -257,6 +252,17 @@ async function confirmAlert(req, res) {
        SET confirmed_at = NOW()
        WHERE alert_id = ? AND institution_id = ? AND confirmed_at IS NULL`,
       [alertId, institutionId]
+    );
+
+    // ── Decrement capacity only on CONFIRM ──────────────────────────
+    // This is the correct place. Hospital has accepted the patient.
+    // One bed is now occupied. We reduce free_capacity by 1.
+    // The guard (free_capacity > 0) prevents going below zero.
+    await pool.execute(
+      `UPDATE institutions
+       SET free_capacity = free_capacity - 1
+       WHERE id = ? AND free_capacity > 0`,
+      [institutionId]
     );
 
     const [hospRows] = await pool.execute(
@@ -295,12 +301,13 @@ async function confirmAlert(req, res) {
       hospital_lat:     hosp.latitude,
       hospital_lng:     hosp.longitude,
       distance_km:      distKm,
-      message:          `Go to ${hosp.name} now. Nearest hospital — ${distKm}km away.`,
+      message:          `Go to ${hosp.name} now. ${distKm}km away. They have been notified.`,
       message_fr:       `Allez à ${hosp.name} maintenant. ${distKm}km. Ils ont été notifiés.`
     };
 
     const io = req.app.get('io');
-    console.log(`\n[CONFIRM] ✅ Alert #${alertId} confirmed by ${hosp.name} (${distKm}km)\n`);
+    console.log(`\n[CONFIRM] ✅ Alert #${alertId} confirmed by ${hosp.name} (${distKm}km)`);
+    console.log(`[CONFIRM]    free_capacity decremented for hospital #${institutionId}\n`);
     io.to(`alert_room_${alertId}`).emit('alert:confirmed', guidance);
 
     await pool.execute(
@@ -317,7 +324,8 @@ async function confirmAlert(req, res) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// PATCH /api/alerts/:id/decline
+// PATCH /api/alerts/:id/decline  — Called by the hospital
+// No capacity change here — capacity was never decremented on dispatch.
 // ══════════════════════════════════════════════════════════════════
 async function declineAlert(req, res) {
   try {
@@ -396,7 +404,8 @@ async function declineAlert(req, res) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// PATCH /api/alerts/:id/resolve
+// PATCH /api/alerts/:id/resolve  — Called by the hospital
+// Capacity increments HERE — bed is now free again.
 // ══════════════════════════════════════════════════════════════════
 async function resolveAlert(req, res) {
   try {
@@ -420,12 +429,18 @@ async function resolveAlert(req, res) {
       [alertId]
     );
 
+    // ── Increment capacity on RESOLVE ───────────────────────────────
+    // Patient has left (treated, transferred, deceased, or false alarm).
+    // The bed is now free. Restore free_capacity by 1.
+    // Guard (< total_capacity) prevents going above the maximum.
     await pool.execute(
       `UPDATE institutions
        SET free_capacity = free_capacity + 1
        WHERE id = ? AND free_capacity < total_capacity`,
       [institutionId]
     );
+
+    console.log(`[RESOLVE] 🏁 Alert #${alertId} resolved as ${outcome}. free_capacity +1 for hospital #${institutionId}`);
 
     return res.json({ message: 'Case resolved. Capacity freed.' });
 
