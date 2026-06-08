@@ -419,6 +419,27 @@ async function resolveAlert(req, res) {
       });
     }
 
+    // ── Guard: only the hospital that CONFIRMED this alert can resolve it ──
+    const [confirmCheck] = await pool.execute(
+      `SELECT id FROM assignments
+       WHERE alert_id = ? AND institution_id = ? AND confirmed_at IS NOT NULL`,
+      [alertId, institutionId]
+    );
+    if (confirmCheck.length === 0) {
+      return res.status(403).json({
+        error: 'Only the hospital that confirmed this alert can resolve it.'
+      });
+    }
+
+    // ── Guard: prevent double-resolve ─────────────────────────────────────
+    const [caseCheck] = await pool.execute(
+      'SELECT id FROM emergency_cases WHERE alert_id = ? AND institution_id = ?',
+      [alertId, institutionId]
+    );
+    if (caseCheck.length > 0) {
+      return res.status(409).json({ error: 'This case has already been resolved.' });
+    }
+
     await pool.execute(
       'INSERT INTO emergency_cases (alert_id, institution_id, outcome, notes) VALUES (?, ?, ?, ?)',
       [alertId, institutionId, outcome, notes || null]
@@ -429,10 +450,10 @@ async function resolveAlert(req, res) {
       [alertId]
     );
 
-    // ── Increment capacity on RESOLVE ───────────────────────────────
+    // ── Increment capacity on RESOLVE ───────────────────────────────────────
     // Patient has left (treated, transferred, deceased, or false alarm).
     // The bed is now free. Restore free_capacity by 1.
-    // Guard (< total_capacity) prevents going above the maximum.
+    // Guard (free_capacity < total_capacity) prevents going above the maximum.
     await pool.execute(
       `UPDATE institutions
        SET free_capacity = free_capacity + 1
@@ -440,9 +461,21 @@ async function resolveAlert(req, res) {
       [institutionId]
     );
 
-    console.log(`[RESOLVE] 🏁 Alert #${alertId} resolved as ${outcome}. free_capacity +1 for hospital #${institutionId}`);
+    // Return updated capacity so the dashboard can sync without a reload
+    const [capRows] = await pool.execute(
+      'SELECT free_capacity, total_capacity FROM institutions WHERE id = ?',
+      [institutionId]
+    );
+    const newFree  = capRows[0]?.free_capacity ?? null;
+    const newTotal = capRows[0]?.total_capacity ?? null;
 
-    return res.json({ message: 'Case resolved. Capacity freed.' });
+    console.log(`[RESOLVE] 🏁 Alert #${alertId} resolved as ${outcome}. free_capacity: ${newFree}/${newTotal} for hospital #${institutionId}`);
+
+    return res.json({
+      message:        'Case resolved. Capacity freed.',
+      free_capacity:  newFree,
+      total_capacity: newTotal
+    });
 
   } catch (error) {
     console.error('resolveAlert error:', error);

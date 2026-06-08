@@ -232,6 +232,17 @@ async function confirmAlert() {
     if (res.ok) {
       btn.textContent      = '✔ Confirmed — Guidance sent to bystander';
       btn.style.background = '#1b5e20';
+
+      // ── Keep local free_capacity in sync with the server ──────────
+      // The server decremented it on confirm — mirror that here so the
+      // Status tab shows the correct bed count without a page reload.
+      if (hospital.free_capacity > 0) {
+        hospital.free_capacity -= 1;
+        sessionStorage.setItem('ecrs_hospital', JSON.stringify(hospital));
+        const bedsInput = document.getElementById('beds-input');
+        if (bedsInput) bedsInput.value = hospital.free_capacity;
+      }
+
       setTimeout(resetToStandby, 4000);
     } else {
       const err       = await res.json();
@@ -316,7 +327,20 @@ async function submitResolve(alertId, outcome) {
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({ outcome })
     });
-    if (res.ok) loadCaseHistory();
+    if (res.ok) {
+    const data = await res.json();
+    loadCaseHistory();
+    // ── Sync free_capacity exactly from server response ────────────
+    // The server returns the real updated value — use that instead of
+    // guessing so the beds display is always accurate.
+    if (data.free_capacity !== null && data.free_capacity !== undefined) {
+      hospital.free_capacity = data.free_capacity;
+      if (data.total_capacity !== undefined) hospital.total_capacity = data.total_capacity;
+      sessionStorage.setItem('ecrs_hospital', JSON.stringify(hospital));
+      const bedsInput = document.getElementById('beds-input');
+      if (bedsInput) bedsInput.value = hospital.free_capacity;
+    }
+  }
   } catch (e) {
     console.error('submitResolve error:', e);
   }
