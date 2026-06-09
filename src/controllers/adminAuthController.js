@@ -51,7 +51,7 @@ async function adminLogin(req, res) {
     const token = jwt.sign(
       {
         id: admin.id,
-        name: admin.name,   // 👈 IMPORTANT (for personalization)
+        name: admin.name,   //  IMPORTANT (for personalization)
         email: admin.email,
         role: 'admin'
       },
@@ -61,8 +61,8 @@ async function adminLogin(req, res) {
 
     // ================= PERSONALIZED RESPONSE =================
     res.status(200).json({
-      message: `Welcome ${admin.name} 👋`,
-      message_fr: `Bienvenue ${admin.name} 👋`,
+      message: `Welcome ${admin.name} `,
+      message_fr: `Bienvenue ${admin.name} `,
       token,
       admin: {
         id: admin.id,

@@ -34,18 +34,18 @@ const SITUATIONS = {
     { img: 'images/symptoms/labor.png', en: 'Childbirth / Labor',  fr: 'Accouchement',       val: 'CHILDBIRTH'            },
     { img: 'images/symptoms/notbreathing.jpg', en: 'Trouble breathing',   fr: 'Difficulté respirer',val: 'BREATHING_DIFFICULTY'  },
     { img: 'images/symptoms/vommitingblood.png', en: 'Vomiting blood',      fr: 'Vomit du sang',      val: 'VOMITING_BLOOD'        },
-    { emoji: '✏️', en: 'Other',               fr: 'Autre',              val: 'OTHER', isOther: true  },
+    { emoji: '', en: 'Other',               fr: 'Autre',              val: 'OTHER', isOther: true  },
   ],
   FIRE: [
-    { emoji: '🏠', en: 'House fire',         fr: 'Incendie maison',   val: 'FIRE_BUILDING'     },
-    { emoji: '🧑‍🔥', en: 'Person on fire',  fr: 'Personne en feu',   val: 'BURN'              },
-    { emoji: '💨', en: 'Gas leak',           fr: 'Fuite de gaz',      val: 'GAS_LEAK'          },
-    { emoji: '✏️', en: 'Other',              fr: 'Autre',             val: 'OTHER', isOther: true },
+    { emoji: '', en: 'House fire',         fr: 'Incendie maison',   val: 'FIRE_BUILDING'     },
+    { emoji: '', en: 'Person on fire',  fr: 'Personne en feu',   val: 'BURN'              },
+    { emoji: '', en: 'Gas leak',           fr: 'Fuite de gaz',      val: 'GAS_LEAK'          },
+    { emoji: '', en: 'Other',              fr: 'Autre',             val: 'OTHER', isOther: true },
   ],
   SECURITY: [
-    { emoji: '👊', en: 'Assault',            fr: 'Agression',         val: 'ASSAULT'           },
-    { emoji: '🔫', en: 'Armed person',       fr: 'Personne armée',    val: 'ARMED_THREAT'      },
-    { emoji: '✏️', en: 'Other',              fr: 'Autre',             val: 'OTHER', isOther: true },
+    { emoji: '', en: 'Assault',            fr: 'Agression',         val: 'ASSAULT'           },
+    { emoji: '', en: 'Armed person',       fr: 'Personne armée',    val: 'ARMED_THREAT'      },
+    { emoji: '', en: 'Other',              fr: 'Autre',             val: 'OTHER', isOther: true },
   ]
 };
 
@@ -60,7 +60,7 @@ function goTo(num) {
 function showComingSoon(name) {
   document.getElementById('screen6-content').innerHTML = `
     <div class='failed-card'>
-      <div class='failed-icon'>🚧</div>
+      <div class='failed-icon'></div>
       <div class='failed-title' style='color:var(--orange)'>Coming Soon</div>
       <div class='failed-sub'>
         <strong>${name}</strong> module is not active yet.<br>
@@ -457,7 +457,7 @@ function showDispatchedTop3(data) {
 
   const backupCardsHtml = backups.length === 0 ? '' : `
     <div class='backup-section'>
-      <div class='backup-title'>📋 Backup options / Options de secours</div>
+      <div class='backup-title'> Backup options / Options de secours</div>
       <div class='backup-list'>
         ${backups.map((h, i) => `
           <div class='backup-card'>
@@ -467,7 +467,7 @@ function showDispatchedTop3(data) {
               <div class='backup-meta'>📍 ${h.distance_km} km · ${h.free_capacity} beds</div>
             </div>
             <a href='https://www.google.com/maps/dir/?api=1&destination=${h.latitude},${h.longitude}'
-               target='_blank' class='backup-maps'>🗺️</a>
+               target='_blank' class='backup-maps'></a>
           </div>
         `).join('')}
       </div>
@@ -483,7 +483,7 @@ function showDispatchedTop3(data) {
       <div class='guidance-hospital-name'>${primary.name}</div>
       <div class='guidance-dist'>📍 ${primary.distance_km} km — selected as best match</div>
       <div class='dispatch-info'>
-        <span style='font-size:18px'>⏳</span>
+        <span style='font-size:18px'></span>
         <span>Alert sent. ${primary.name} is reviewing now.<br>
         <em style='color:var(--text-muted)'>Alerte envoyée. ${primary.name} examine maintenant.</em></span>
       </div>
@@ -491,7 +491,7 @@ function showDispatchedTop3(data) {
         🗺️ Get Directions to ${primary.name}
       </a>
       ${primary.phone
-        ? `<a href='tel:${primary.phone}' class='call-btn'>📞 Call Hospital</a>`
+        ? `<a href='tel:${primary.phone}' class='call-btn'> Call Hospital</a>`
         : ''}
       ${backupCardsHtml}
     </div>
@@ -505,20 +505,20 @@ function showGuidance(guidance) {
     <div class='guidance-card'>
       <div class='guidance-confirmed'>✓ HOSPITAL CONFIRMED</div>
       <div class='guidance-hospital-name'>${guidance.hospital_name}</div>
-      <div class='guidance-dist'>📍 ${guidance.distance_km} km from you</div>
+      <div class='guidance-dist'> ${guidance.distance_km} km from you</div>
       <div class='guidance-notified'>
-        <span style='font-size:18px'>✅</span>
+        <span style='font-size:18px'></span>
         <span>The hospital has been notified and is expecting you. Head there now.<br>
         <em style='color:var(--text-muted)'>L'hôpital a été notifié. Rendez-vous là-bas.</em></span>
       </div>
       ${guidance.hospital_phone
-        ? `<div class='guidance-phone'>📞 ${guidance.hospital_phone}</div>`
+        ? `<div class='guidance-phone'> ${guidance.hospital_phone}</div>`
         : ''}
       <a href='${mapsUrl}' target='_blank' class='maps-btn'>
         🗺️ Get Directions / Itinéraire
       </a>
       ${guidance.hospital_phone
-        ? `<a href='tel:${guidance.hospital_phone}' class='call-btn'>📞 Call Hospital</a>`
+        ? `<a href='tel:${guidance.hospital_phone}' class='call-btn'> Call Hospital</a>`
         : ''}
       <button class='emergency-btn secondary' onclick='resetApp()'>← New Alert / Nouvelle alerte</button>
     </div>
@@ -533,7 +533,7 @@ function showFailed(data) {
   ];
   document.getElementById('screen6-content').innerHTML = `
     <div class='failed-card'>
-      <div class='failed-icon'>😔</div>
+      <div class='failed-icon'></div>
       <div class='failed-title'>No hospital available</div>
       <div class='failed-sub'>
         ${data.message_fr || data.message || 'No hospitals could accept right now.'}<br>
@@ -549,7 +549,7 @@ function showFailed(data) {
 function showGPSError() {
   document.getElementById('screen6-content').innerHTML = `
     <div class='failed-card'>
-      <div class='failed-icon'>📍</div>
+      <div class='failed-icon'></div>
       <div class='failed-title'>Location needed</div>
       <div class='failed-sub'>
         Please enable GPS / Location in your browser settings and try again.<br>

@@ -1,20 +1,10 @@
 const jwt  = require('jsonwebtoken');
 const pool = require('../config/database');
 
-/**
- * Middleware: requireAuth
- * --------------------------------------------
- * Protects hospital routes (confirm, decline, resolve, capacity).
- *
- * TWO-LAYER PROTECTION:
- *  1. JWT must be valid and carry role='institution'
- *  2. We re-query the DB for the institution's CURRENT status.
- *     This means a suspended hospital cannot keep acting even if
- *     they still hold a valid (non-expired) JWT token.
- */
+
 async function requireAuth(req, res, next) {
 
-  // ── 1. Get Authorization header ──────────────────────────────────
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -31,7 +21,7 @@ async function requireAuth(req, res, next) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
-  // ── 2. Verify JWT signature & expiry ─────────────────────────────
+ 
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -43,7 +33,7 @@ async function requireAuth(req, res, next) {
     });
   }
 
-  // ── 3. Role check ─────────────────────────────────────────────────
+
   if (decoded.role !== 'institution') {
     return res.status(403).json({
       error:    'Access denied. Hospital accounts only.',
@@ -51,10 +41,7 @@ async function requireAuth(req, res, next) {
     });
   }
 
-  // ── 4. Re-check LIVE status from DB ──────────────────────────────
-  // The JWT may say 'approved' but admin could have suspended the
-  // hospital after the token was issued. We verify against the DB
-  // on every protected request.
+
   try {
     const [rows] = await pool.execute(
       'SELECT id, name, email, status FROM institutions WHERE id = ?',
@@ -85,7 +72,7 @@ async function requireAuth(req, res, next) {
       });
     }
 
-    // ── 5. Attach live institution data to request ─────────────────
+ 
     req.institution = {
       id:    institution.id,
       name:  institution.name,

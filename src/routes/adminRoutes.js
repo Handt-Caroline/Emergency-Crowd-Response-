@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-// ■■ Controllers ■■
+
 const { adminLogin } = require('../controllers/adminAuthController');
 const {
 getAllInstitutions,
@@ -9,11 +9,11 @@ suspendHospital,
 getStats,
 getAllAlerts
 } = require('../controllers/adminController');
-// ■■ Middleware ■■
+
 const { requireAdminAuth } = require('../middleware/adminAuthMiddleware');
-// ■■ PUBLIC (no auth needed) ■■
+
 router.post('/login', adminLogin);
-// ■■ PROTECTED (admin JWT required) ■■
+
 router.get('/dashboard', requireAdminAuth, (req, res) => {
 res.json({ message: `Welcome ${req.admin.name}`, admin: req.admin });
 });

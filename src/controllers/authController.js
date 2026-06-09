@@ -15,7 +15,7 @@ function isValidEmail(email) {
   return true;
 }
 
-// ── Helper: validate password strength on the server ─────────────────
+
 function getPasswordErrors(password) {
   const errors = [];
   if (!password || password.length < 8)       errors.push('Password must be at least 8 characters.');
@@ -24,9 +24,7 @@ function getPasswordErrors(password) {
   return errors;
 }
 
-// ══════════════════════════════════════════════════════════════════
-// POST /api/auth/register
-// ══════════════════════════════════════════════════════════════════
+
 async function register(req, res) {
   try {
     const {
@@ -42,7 +40,7 @@ async function register(req, res) {
       totalCapacity
     } = req.body;
 
-    // ── Required field check ──────────────────────────────────────
+
     if (!name || !email || !password || !latitude || !longitude) {
       return res.status(400).json({
         error:    'Missing required fields: name, email, password, latitude, longitude',
@@ -50,7 +48,7 @@ async function register(req, res) {
       });
     }
 
-    // ── Name validation ───────────────────────────────────────────
+
     if (name.trim().length < 3) {
       return res.status(400).json({
         error:    'Hospital name must be at least 3 characters.',
@@ -58,7 +56,6 @@ async function register(req, res) {
       });
     }
 
-    // ── Email format validation ───────────────────────────────────
     const cleanEmail = email.trim().toLowerCase();
     if (!isValidEmail(cleanEmail)) {
       return res.status(400).json({
@@ -67,7 +64,6 @@ async function register(req, res) {
       });
     }
 
-    // ── Password strength validation ──────────────────────────────
     const pwErrors = getPasswordErrors(password);
     if (pwErrors.length > 0) {
       return res.status(400).json({
@@ -76,7 +72,7 @@ async function register(req, res) {
       });
     }
 
-    // ── GPS coordinate validation ─────────────────────────────────
+
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
     if (isNaN(lat) || lat < -90  || lat > 90)  {
@@ -86,7 +82,6 @@ async function register(req, res) {
       return res.status(400).json({ error: 'Longitude must be between -180 and 180.', error_fr: 'Longitude invalide.' });
     }
 
-    // ── Check if email already registered ────────────────────────
     const [existing] = await pool.execute(
       'SELECT id FROM institutions WHERE email = ?',
       [cleanEmail]
@@ -98,12 +93,11 @@ async function register(req, res) {
       });
     }
 
-    // ── Hash password ─────────────────────────────────────────────
     const passwordHash = await bcrypt.hash(password, 10);
 
     const capacity = parseInt(totalCapacity) || 0;
 
-    // ── Insert into database ──────────────────────────────────────
+
     const [result] = await pool.execute(
       `INSERT INTO institutions
        (name, type, email, password_hash, address, phone,
@@ -144,9 +138,7 @@ async function register(req, res) {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// POST /api/auth/login
-// ══════════════════════════════════════════════════════════════════
+
 async function login(req, res) {
   try {
     const { email, password } = req.body;

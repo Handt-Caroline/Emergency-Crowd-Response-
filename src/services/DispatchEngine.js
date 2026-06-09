@@ -1,13 +1,7 @@
 const pool = require('../config/database');
 const { getRequirements, getCombinedRequirements, getOtherWithKeywords } = require('../utils/categoryMapper');
 
-/**
- * DispatchEngine — Singleton (Creational design pattern)
- *
- * Ranks all qualifying hospitals near a bystander based on distance and capacity.
- * Returns the BEST (single) hospital for primary dispatch, AND the TOP 3 hospitals
- * for the bystander to see as backup options.
- */
+
 class DispatchEngine {
 
   constructor() {
@@ -17,23 +11,13 @@ class DispatchEngine {
     this.topNForBystander  = 3;      // Number of "backup" hospitals shown to bystander
   }
 
-  // ────────────────────────────────────────────────────────────────────
-  // findBestHospital(alert, excludeIds = [])
-  // Returns { winner, top3 } where:
-  //   - winner: the BEST single hospital (for real-time dispatch)
-  //   - top3:   array of up to 3 best hospitals (for bystander to see as options)
-  //
-  // Backward compatible: if you treat the returned object as the winner directly,
-  // it still works because we attach all winner properties.
-  // ────────────────────────────────────────────────────────────────────
+
   async findBestHospital(alert, excludeIds = []) {
 
-    // STEP 1: Build requirements based on situation
-    // Handles: single symptom, multi-symptom (comma), and "OTHER: <text>"
+   
     const situation = alert.situation || '';
     let requirements;
 
-    // Separate symptom part from optional " +DETAILS: ..." text
     let symptomPart = situation;
     let detailsText = '';
     const detailsIdx = symptomPart.indexOf('+DETAILS:');
@@ -68,7 +52,7 @@ class DispatchEngine {
     );
 
     if (candidates.length === 0) {
-      console.log(`[DISPATCH] ❌ No qualifying hospital found within ${this.searchRadiusMetres/1000}km for situation: ${situation}`);
+      console.log(`[DISPATCH]  No qualifying hospital found within ${this.searchRadiusMetres/1000}km for situation: ${situation}`);
       console.log(`[DISPATCH]    Bystander GPS: lat=${alert.latitude}, lng=${alert.longitude}`);
       if (excludeIds.length > 0) {
         console.log(`[DISPATCH]    Already declined by: [${excludeIds.join(', ')}]`);
@@ -110,7 +94,7 @@ class DispatchEngine {
 
     // STEP 8: Log the winner + top 3
     const distKm = (winner.distance_metres / 1000).toFixed(2);
-    console.log(`\n[DISPATCH] ✅ Alert dispatched!`);
+    console.log(`\n[DISPATCH]  Alert dispatched!`);
     console.log(`[DISPATCH]    → Hospital : ${winner.name}`);
     console.log(`[DISPATCH]    → Distance : ${distKm} km`);
     console.log(`[DISPATCH]    → Score    : ${winner.score.toFixed(4)}`);
@@ -130,9 +114,6 @@ class DispatchEngine {
     return winner;
   }
 
-  // ────────────────────────────────────────────────────────────────────
-  // getCandidates — find all hospitals matching requirements within radius
-  // ────────────────────────────────────────────────────────────────────
   async getCandidates(lat, lng, requiredEquipment, requiredPersonnel, excludeIds = []) {
 
     const excludeClause = excludeIds.length > 0
@@ -192,11 +173,7 @@ class DispatchEngine {
     });
   }
 
-  // ────────────────────────────────────────────────────────────────────
-  // scoreHospital — combines distance + capacity into a single score
-  // Higher score = better candidate
-  // ────────────────────────────────────────────────────────────────────
-  // Merge two requirement objects (union of equipment + personnel)
+
   mergeReqs(base, extra) {
     return {
       medicalCategory:   base.medicalCategory,

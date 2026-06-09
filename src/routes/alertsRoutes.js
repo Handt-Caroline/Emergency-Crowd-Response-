@@ -8,7 +8,7 @@ const multer   = require('multer');
 const { requireAuth } = require('../middleware/authMiddleware');
 const { createAlert, confirmAlert, declineAlert, resolveAlert } = require('../controllers/alertsController');
 
-// ── Multer: save photos to /uploads/alerts/ ───────────────────────────
+
 const uploadDir = path.join(__dirname, '../../uploads/alerts');
 
 // Create folder if it doesn't exist
@@ -38,11 +38,7 @@ const upload = multer({
   }
 });
 
-// ── Routes ────────────────────────────────────────────────────────────
 
-// Bystander — no auth needed
-// upload.single('photo') handles multipart/form-data OR falls through for JSON
-// Wrapped so a too-large or invalid file returns a friendly error instead of crashing.
 function uploadPhoto(req, res, next) {
   upload.single('photo')(req, res, (err) => {
     if (err) {

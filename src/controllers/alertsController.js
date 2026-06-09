@@ -72,7 +72,7 @@ async function createAlert(req, res) {
 
     const alertId = result.insertId;
 
-    console.log(`\n[ALERT] 🚨 New alert #${alertId} received`);
+    console.log(`\n[ALERT]  New alert #${alertId} received`);
     console.log(`[ALERT]    Type      : ${emergency_type}`);
     console.log(`[ALERT]    Situation : ${situation}`);
     console.log(`[ALERT]    Victims   : ${victims_count || 'UNKNOWN'}`);
@@ -89,7 +89,7 @@ async function createAlert(req, res) {
     const io = req.app.get('io');
 
     if (!hospital) {
-      console.log(`[ALERT] ❌ Alert #${alertId} — no hospital available.`);
+      console.log(`[ALERT]  Alert #${alertId} — no hospital available.`);
       await pool.execute(
         "UPDATE alerts SET status = 'FAILED' WHERE id = ?",
         [alertId]
@@ -106,9 +106,7 @@ async function createAlert(req, res) {
       return res.status(201).json({ alertId, dispatched: false });
     }
 
-    // Save assignment — NO capacity decrement here.
-    // Capacity only decrements when the hospital CONFIRMS (not just when dispatched).
-    // If they decline, the capacity must not change at all.
+  
     await pool.execute(
       'INSERT INTO assignments (alert_id, institution_id) VALUES (?, ?)',
       [alertId, hospital.id]
@@ -164,7 +162,7 @@ async function createAlert(req, res) {
         );
 
         if (check.length > 0) {
-          console.log(`[TIMEOUT] ⏰ Alert #${alertId} — hospital ${hospital.id} did not respond. Re-dispatching...`);
+          console.log(`[TIMEOUT]  Alert #${alertId} — hospital ${hospital.id} did not respond. Re-dispatching...`);
 
           await pool.execute(
             `UPDATE assignments
@@ -180,7 +178,7 @@ async function createAlert(req, res) {
           );
 
           if (!nextHospital) {
-            console.log(`[TIMEOUT] ❌ Alert #${alertId} — no other hospital after timeout.`);
+            console.log(`[TIMEOUT]  Alert #${alertId} — no other hospital after timeout.`);
             await pool.execute(
               "UPDATE alerts SET status = 'FAILED' WHERE id = ?",
               [alertId]
@@ -223,7 +221,7 @@ async function createAlert(req, res) {
             suggestedPrepEn
           });
 
-          console.log(`[TIMEOUT] ✅ Alert #${alertId} re-dispatched to ${nextHospital.name}`);
+          console.log(`[TIMEOUT]  Alert #${alertId} re-dispatched to ${nextHospital.name}`);
         }
       } catch (timeoutErr) {
         console.error('[TIMEOUT] Error during auto re-dispatch:', timeoutErr.message);
@@ -238,10 +236,6 @@ async function createAlert(req, res) {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// PATCH /api/alerts/:id/confirm  — Called by the hospital
-// Capacity decrements HERE — only when hospital actually accepts.
-// ══════════════════════════════════════════════════════════════════
 async function confirmAlert(req, res) {
   try {
     const alertId       = req.params.id;
@@ -254,10 +248,7 @@ async function confirmAlert(req, res) {
       [alertId, institutionId]
     );
 
-    // ── Decrement capacity only on CONFIRM ──────────────────────────
-    // This is the correct place. Hospital has accepted the patient.
-    // One bed is now occupied. We reduce free_capacity by 1.
-    // The guard (free_capacity > 0) prevents going below zero.
+   
     await pool.execute(
       `UPDATE institutions
        SET free_capacity = free_capacity - 1
@@ -306,7 +297,7 @@ async function confirmAlert(req, res) {
     };
 
     const io = req.app.get('io');
-    console.log(`\n[CONFIRM] ✅ Alert #${alertId} confirmed by ${hosp.name} (${distKm}km)`);
+    console.log(`\n[CONFIRM]  Alert #${alertId} confirmed by ${hosp.name} (${distKm}km)`);
     console.log(`[CONFIRM]    free_capacity decremented for hospital #${institutionId}\n`);
     io.to(`alert_room_${alertId}`).emit('alert:confirmed', guidance);
 
@@ -323,10 +314,7 @@ async function confirmAlert(req, res) {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// PATCH /api/alerts/:id/decline  — Called by the hospital
-// No capacity change here — capacity was never decremented on dispatch.
-// ══════════════════════════════════════════════════════════════════
+
 async function declineAlert(req, res) {
   try {
     const alertId       = req.params.id;
@@ -351,7 +339,7 @@ async function declineAlert(req, res) {
     );
     const alert = alertRows[0];
 
-    console.log(`\n[DECLINE] ⚠️  Alert #${alertId} declined by institution #${institutionId}. Searching next...`);
+    console.log(`\n[DECLINE]   Alert #${alertId} declined by institution #${institutionId}. Searching next...`);
     const nextHospital = await DispatchEngine.findBestHospital(alert, excludeIds);
 
     const io = req.app.get('io');
@@ -403,10 +391,7 @@ async function declineAlert(req, res) {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════
-// PATCH /api/alerts/:id/resolve  — Called by the hospital
-// Capacity increments HERE — bed is now free again.
-// ══════════════════════════════════════════════════════════════════
+
 async function resolveAlert(req, res) {
   try {
     const alertId       = req.params.id;
@@ -419,7 +404,7 @@ async function resolveAlert(req, res) {
       });
     }
 
-    // ── Guard: only the hospital that CONFIRMED this alert can resolve it ──
+
     const [confirmCheck] = await pool.execute(
       `SELECT id FROM assignments
        WHERE alert_id = ? AND institution_id = ? AND confirmed_at IS NOT NULL`,
@@ -431,7 +416,7 @@ async function resolveAlert(req, res) {
       });
     }
 
-    // ── Guard: prevent double-resolve ─────────────────────────────────────
+   
     const [caseCheck] = await pool.execute(
       'SELECT id FROM emergency_cases WHERE alert_id = ? AND institution_id = ?',
       [alertId, institutionId]
@@ -450,10 +435,7 @@ async function resolveAlert(req, res) {
       [alertId]
     );
 
-    // ── Increment capacity on RESOLVE ───────────────────────────────────────
-    // Patient has left (treated, transferred, deceased, or false alarm).
-    // The bed is now free. Restore free_capacity by 1.
-    // Guard (free_capacity < total_capacity) prevents going above the maximum.
+ 
     await pool.execute(
       `UPDATE institutions
        SET free_capacity = free_capacity + 1
@@ -469,7 +451,7 @@ async function resolveAlert(req, res) {
     const newFree  = capRows[0]?.free_capacity ?? null;
     const newTotal = capRows[0]?.total_capacity ?? null;
 
-    console.log(`[RESOLVE] 🏁 Alert #${alertId} resolved as ${outcome}. free_capacity: ${newFree}/${newTotal} for hospital #${institutionId}`);
+    console.log(`[RESOLVE]  Alert #${alertId} resolved as ${outcome}. free_capacity: ${newFree}/${newTotal} for hospital #${institutionId}`);
 
     return res.json({
       message:        'Case resolved. Capacity freed.',

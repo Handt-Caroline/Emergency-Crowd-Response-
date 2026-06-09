@@ -1,23 +1,7 @@
-// src/utils/categoryMapper.js
-//
-// Maps emergency SITUATIONS to required hospital RESOURCES.
-//
-// 3 main features:
-//   1. SITUATION_REQUIREMENTS: each symptom -> equipment, personnel, ICU need
-//   2. getCombinedRequirements(situations): when bystander picks MULTIPLE symptoms,
-//      combine them (UNION of equipment + personnel)
-//   3. parseOtherDescription(text): when bystander picks "Other" with free text,
-//      scan keywords to add specialist requirements
-//
-// DESIGN PATTERN: Strategy via lookup table
-//   Each emergency situation has its own dispatch strategy stored as a config
-//   object. The dispatch engine doesn't need to know the details — it just asks
-//   for the strategy at runtime.
+
 
 const SITUATION_REQUIREMENTS = {
-  // ════════════════════════════════════════════════════════════════
-  // VISIBLE SYMPTOMS (what bystanders actually see and report)
-  // ════════════════════════════════════════════════════════════════
+
 
   UNCONSCIOUS: {  // "Person collapsed"
     medicalCategory: 'RESUSCITATION',
@@ -85,7 +69,7 @@ const SITUATION_REQUIREMENTS = {
     }
   },
 
-  // ── Stroke signs (split from old "STROKE") ─────────────────────────
+ 
   FACE_DROOPING: {
     medicalCategory: 'NEUROLOGY',
     requiredEquipment: ['CT_SCAN', 'OXYGEN', 'ICU_BEDS'],
@@ -174,7 +158,7 @@ const SITUATION_REQUIREMENTS = {
     }
   },
 
-  // ── Legacy / Fire ─────────────────────────────────────────────────
+ 
   FIRE_BUILDING: {
     medicalCategory: 'EMERGENCY_MEDICINE',
     requiredEquipment: ['OXYGEN', 'BURNS_UNIT', 'EMERGENCY_BAY'],
@@ -197,7 +181,7 @@ const SITUATION_REQUIREMENTS = {
     }
   },
 
-  // ── Fallback ──────────────────────────────────────────────────────
+
   OTHER: {
     medicalCategory: 'GENERAL_MEDICINE',
     requiredEquipment: ['OXYGEN', 'EMERGENCY_BAY'],
@@ -211,11 +195,7 @@ const SITUATION_REQUIREMENTS = {
 };
 
 
-// ════════════════════════════════════════════════════════════════════
-// KEYWORD DETECTION for "OTHER" descriptions
-// When bystander types free text, we scan for keywords and add extra
-// requirements. Always falls back to OTHER baseline if nothing matches.
-// ════════════════════════════════════════════════════════════════════
+
 
 const KEYWORD_RULES = [
   {
@@ -275,14 +255,7 @@ const KEYWORD_RULES = [
 ];
 
 
-// ════════════════════════════════════════════════════════════════════
-// PUBLIC API
-// ════════════════════════════════════════════════════════════════════
 
-/**
- * Get requirements for a SINGLE situation.
- * Falls back to OTHER if not recognized.
- */
 function getRequirements(situation) {
   return SITUATION_REQUIREMENTS[situation] || SITUATION_REQUIREMENTS['OTHER'];
 }

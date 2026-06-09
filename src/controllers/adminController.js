@@ -1,6 +1,6 @@
 const pool = require('../config/database');
 
-// ■■ GET /api/admin/institutions ■■
+
 async function getAllInstitutions(req, res) {
   try {
     const [rows] = await pool.execute(
@@ -15,7 +15,7 @@ async function getAllInstitutions(req, res) {
   }
 }
 
-// ■■ PATCH /api/admin/institutions/:id/approve ■■
+
 async function approveHospital(req, res) {
   try {
     const [rows] = await pool.execute(
@@ -45,7 +45,7 @@ async function approveHospital(req, res) {
   }
 }
 
-// ■■ PATCH /api/admin/institutions/:id/suspend ■■
+
 async function suspendHospital(req, res) {
   try {
     const [rows] = await pool.execute(
@@ -100,7 +100,7 @@ async function suspendHospital(req, res) {
   }
 }
 
-// ■■ GET /api/admin/stats ■■
+
 async function getStats(req, res) {
   try {
     const [[approved]]  = await pool.execute("SELECT COUNT(*) AS c FROM institutions WHERE status='approved'");
@@ -124,8 +124,7 @@ async function getStats(req, res) {
 }
 
 
-// ■■ GET /api/admin/alerts ■■
-// Returns all alerts with: who confirmed, who declined, current status
+
 async function getAllAlerts(req, res) {
   try {
     const [rows] = await pool.execute(
