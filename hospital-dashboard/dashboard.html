@@ -32,7 +32,7 @@
     <!-- ── ALERT PANEL ─────────────────────────────────────────── -->
     <div class='alert-panel' id='alert-panel'>
       <div class='alert-banner' id='alert-banner'>
-        🚨 INCOMING EMERGENCY — URGENCE ENTRANTE 🚨
+        INCOMING EMERGENCY — URGENCE ENTRANTE
       </div>
       <div class='alert-body'>
         <div class='alert-info'>
@@ -59,7 +59,7 @@
 
           <!-- Scene photo sent by bystander -->
           <div class='info-row' id='photo-row' style='display:none;flex-direction:column;gap:8px;'>
-            <span class='info-label'>📷 SCENE PHOTO</span>
+            <span class='info-label'>SCENE PHOTO</span>
             <div id='photo-container' style='width:100%;'>
               <img id='alert-photo'
                 src=''
@@ -98,8 +98,8 @@
     <!-- ── BOTTOM CONTROLS ─────────────────────────────────────── -->
     <!-- Tab nav -->
     <div class='ctrl-tabs'>
-      <button class='ctrl-tab active' id='tab-btn-status'  onclick='switchTab("status")'>🏥 Status</button>
-      <button class='ctrl-tab'        id='tab-btn-profile' onclick='switchTab("profile")'>✏️ My Profile</button>
+      <button class='ctrl-tab active' id='tab-btn-status'  onclick='switchTab("status")'>Status</button>
+      <button class='ctrl-tab'        id='tab-btn-profile' onclick='switchTab("profile")'>My Profile</button>
       <button class='ctrl-tab'        id='tab-btn-history' onclick='switchTab("history")'>📋 Recent Cases</button>
     </div>
 
@@ -116,14 +116,14 @@
       </div>
       <button class='save-btn' onclick='saveCapacity()'>Save / Enregistrer</button>
       <p style='font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5'>
-        🏥 Hospitals are always considered operational. Your account status is managed by the ECRS administrator.
+        Hospitals are always considered operational. Your account status is managed by the ECRS administrator.
         <br>Les hôpitaux sont toujours considérés comme opérationnels. Votre statut est géré par l'administrateur ECRS.
       </p>
     </div>
 
     <!-- PROFILE tab -->
     <div id='tab-profile' class='ctrl-card tab-content' style='display:none'>
-      <div class='ctrl-title'>✏️ Edit Hospital Profile</div>
+      <div class='ctrl-title'>Edit Hospital Profile</div>
       <p style='font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6'>
         Keep your profile accurate. Equipment and personnel directly affect which emergencies the Dispatch Engine sends to you.
       </p>
@@ -179,7 +179,7 @@
 
       <div style='margin-top:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap'>
         <button class='save-btn' id='profile-save-btn' onclick='saveProfile()'>
-          💾 Save Profile
+           Save Profile
         </button>
         <span id='profile-msg' style='font-size:13px'></span>
       </div>
@@ -187,7 +187,7 @@
 
     <!-- HISTORY tab -->
     <div id='tab-history' class='ctrl-card tab-content' style='display:none'>
-      <div class='ctrl-title'>📋 Recent Cases</div>
+      <div class='ctrl-title'> Recent Cases</div>
       <div id='case-history'>
         <p style='color:var(--muted);font-size:13px'>Loading...</p>
       </div>
