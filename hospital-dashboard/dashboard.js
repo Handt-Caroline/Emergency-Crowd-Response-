@@ -1,44 +1,41 @@
 
-// ── Config — change this to your machine's IP when demoing on phone ──
-// Find your IP: run  ipconfig (Windows)  or  ifconfig (Mac/Linux)
-// Example: const API_URL = 'http://192.168.1.45:3000';
-// API_URL auto-detects: works on localhost AND on your deployed server
+
 const API_URL = (window.location.hostname !== 'localhost')
   ? window.location.origin
   : 'http://localhost:3000';
 
-// ── All equipment options (must match categoryMapper.js) ─────────────
+
 const EQUIPMENT_OPTIONS = [
-  { val: 'DEFIBRILLATOR',   label: '🫀 Defibrillator'     },
-  { val: 'OXYGEN',          label: '💨 Oxygen'             },
-  { val: 'VENTILATOR',      label: '🌬️ Ventilator'        },
-  { val: 'ICU_BEDS',        label: '🛏️ ICU Beds'          },
-  { val: 'ECG_MACHINE',     label: '📈 ECG Machine'        },
-  { val: 'XRAY',            label: '🔬 X-Ray'              },
-  { val: 'CT_SCAN',         label: '🖥️ CT Scan'           },
-  { val: 'BLOOD_BANK',      label: '🩸 Blood Bank'         },
-  { val: 'OPERATING_THEATRE',label: '🏥 Operating Theatre' },
-  { val: 'EMERGENCY_BAY',   label: '🚨 Emergency Bay'      },
-  { val: 'MATERNITY',       label: '🤱 Maternity'          },
-  { val: 'MATERNITY_WARD',  label: '🏩 Maternity Ward'     },
-  { val: 'TRAUMA_SURGERY',  label: '🩹 Trauma Surgery'     },
-  { val: 'PAEDIATRIC_WARD', label: '👶 Paediatric Ward'    },
+  { val: 'DEFIBRILLATOR',   label: ' Defibrillator'     },
+  { val: 'OXYGEN',          label: ' Oxygen'             },
+  { val: 'VENTILATOR',      label: ' Ventilator'        },
+  { val: 'ICU_BEDS',        label: ' ICU Beds'          },
+  { val: 'ECG_MACHINE',     label: ' ECG Machine'        },
+  { val: 'XRAY',            label: ' X-Ray'              },
+  { val: 'CT_SCAN',         label: ' CT Scan'           },
+  { val: 'BLOOD_BANK',      label: ' Blood Bank'         },
+  { val: 'OPERATING_THEATRE',label: ' Operating Theatre' },
+  { val: 'EMERGENCY_BAY',   label: ' Emergency Bay'      },
+  { val: 'MATERNITY',       label: ' Maternity'          },
+  { val: 'MATERNITY_WARD',  label: ' Maternity Ward'     },
+  { val: 'TRAUMA_SURGERY',  label: ' Trauma Surgery'     },
+  { val: 'PAEDIATRIC_WARD', label: ' Paediatric Ward'    },
 ];
 
-// ── All personnel options ─────────────────────────────────────────────
+
 const PERSONNEL_OPTIONS = [
-  { val: 'GENERAL_DOCTOR',      label: '👨‍⚕️ General Doctor'      },
-  { val: 'ANAESTHESIOLOGIST',   label: '💉 Anaesthesiologist'   },
-  { val: 'CARDIOLOGIST',        label: '🫀 Cardiologist'         },
-  { val: 'SURGEON',             label: '🔪 Surgeon'              },
-  { val: 'NEUROLOGIST',         label: '🧠 Neurologist'          },
-  { val: 'OBSTETRICIAN',        label: '🤰 Obstetrician'         },
-  { val: 'MIDWIFE',             label: '👩‍⚕️ Midwife'            },
-  { val: 'PAEDIATRICIAN',       label: '👶 Paediatrician'        },
-  { val: 'RESUSCITATION_NURSE', label: '🏥 Resuscitation Nurse'  },
+  { val: 'GENERAL_DOCTOR',      label: ' General Doctor'      },
+  { val: 'ANAESTHESIOLOGIST',   label: ' Anaesthesiologist'   },
+  { val: 'CARDIOLOGIST',        label: ' Cardiologist'         },
+  { val: 'SURGEON',             label: ' Surgeon'              },
+  { val: 'NEUROLOGIST',         label: ' Neurologist'          },
+  { val: 'OBSTETRICIAN',        label: ' Obstetrician'         },
+  { val: 'MIDWIFE',             label: ' Midwife'            },
+  { val: 'PAEDIATRICIAN',       label: ' Paediatrician'        },
+  { val: 'RESUSCITATION_NURSE', label: ' Resuscitation Nurse'  },
 ];
 
-// ── State ──────────────────────────────────────────────────────────────
+
 let token        = null;
 let hospital     = null;
 let socket       = null;
@@ -46,7 +43,6 @@ let currentAlert = null;
 let map          = null;
 let alertMarker  = null;
 
-// ── Boot ───────────────────────────────────────────────────────────────
 window.onload = () => {
   token    = sessionStorage.getItem('ecrs_token');
   hospital = JSON.parse(sessionStorage.getItem('ecrs_hospital') || 'null');
@@ -69,7 +65,7 @@ window.onload = () => {
   loadCaseHistory();
 };
 
-// ── Tab switcher ───────────────────────────────────────────────────────
+
 function switchTab(tab) {
   ['status', 'profile', 'history'].forEach(t => {
     document.getElementById(`tab-${t}`).style.display     = 'none';
@@ -82,7 +78,7 @@ function switchTab(tab) {
   if (tab === 'profile') fillProfileForm();
 }
 
-// ── Logout ─────────────────────────────────────────────────────────────
+
 function logout() {
   if (!confirm('Log out of the ECRS dashboard?')) return;
   if (socket) socket.disconnect();
@@ -91,7 +87,6 @@ function logout() {
   window.location.href = 'index.html';
 }
 
-// ── Socket connection ──────────────────────────────────────────────────
 function connectSocket() {
   socket = io(API_URL, { auth: { token } });
 
@@ -113,7 +108,7 @@ function connectSocket() {
   });
 }
 
-// ── Receive and display incoming alert ────────────────────────────────
+
 function receiveAlert(data) {
   currentAlert = data;
 
@@ -165,13 +160,13 @@ function receiveAlert(data) {
 
   const confirmBtn = document.getElementById('btn-confirm');
   confirmBtn.disabled    = false;
-  confirmBtn.textContent = '✔ CONFIRM — Direct patient here / Diriger le patient ici';
+  confirmBtn.textContent = ' CONFIRM — Direct patient here / Diriger le patient ici';
   confirmBtn.style.background = '';
 
   initMap(data.latitude, data.longitude);
 }
 
-// ── Map ────────────────────────────────────────────────────────────────
+
 function initMap(lat, lng) {
   if (!map) {
     map = L.map('map').setView([lat, lng], 14);
@@ -219,7 +214,7 @@ function initMap(lat, lng) {
   setTimeout(() => map.invalidateSize(), 200);
 }
 
-// ── Confirm alert ──────────────────────────────────────────────────────
+
 async function confirmAlert() {
   if (!currentAlert) return;
   const btn = document.getElementById('btn-confirm');
@@ -230,12 +225,10 @@ async function confirmAlert() {
       method: 'PATCH', headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) {
-      btn.textContent      = '✔ Confirmed — Guidance sent to bystander';
+      btn.textContent      = ' Confirmed — Guidance sent to bystander';
       btn.style.background = '#1b5e20';
 
-      // ── Keep local free_capacity in sync with the server ──────────
-      // The server decremented it on confirm — mirror that here so the
-      // Status tab shows the correct bed count without a page reload.
+    
       if (hospital.free_capacity > 0) {
         hospital.free_capacity -= 1;
         sessionStorage.setItem('ecrs_hospital', JSON.stringify(hospital));
@@ -255,7 +248,7 @@ async function confirmAlert() {
   }
 }
 
-// ── Decline alert ──────────────────────────────────────────────────────
+
 async function declineAlert() {
   if (!currentAlert) return;
   if (!confirm('Decline this emergency? It will be redirected to another hospital.')) return;
@@ -269,7 +262,7 @@ async function declineAlert() {
   }
 }
 
-// ── Resolve case ───────────────────────────────────────────────────────
+
 async function resolveCase(alertId) {
   const existing = document.getElementById('resolve-modal');
   if (existing) existing.remove();
@@ -330,9 +323,7 @@ async function submitResolve(alertId, outcome) {
     if (res.ok) {
     const data = await res.json();
     loadCaseHistory();
-    // ── Sync free_capacity exactly from server response ────────────
-    // The server returns the real updated value — use that instead of
-    // guessing so the beds display is always accurate.
+   
     if (data.free_capacity !== null && data.free_capacity !== undefined) {
       hospital.free_capacity = data.free_capacity;
       if (data.total_capacity !== undefined) hospital.total_capacity = data.total_capacity;
@@ -346,7 +337,7 @@ async function submitResolve(alertId, outcome) {
   }
 }
 
-// ── Save capacity ──────────────────────────────────────────────────────
+
 async function saveCapacity() {
   const freeCapacity = parseInt(document.getElementById('beds-input').value) || 0;
 
@@ -361,7 +352,7 @@ async function saveCapacity() {
     if (res.ok) {
       hospital.free_capacity = freeCapacity;
       sessionStorage.setItem('ecrs_hospital', JSON.stringify(hospital));
-      btn.textContent      = '✔ Saved';
+      btn.textContent      = ' Saved';
       btn.style.background = '#1b5e20';
       setTimeout(() => { btn.textContent = 'Save / Enregistrer'; btn.style.background = ''; }, 2000);
     } else {
@@ -372,7 +363,7 @@ async function saveCapacity() {
   }
 }
 
-// ── Profile form: build checkboxes once ───────────────────────────────
+
 function buildProfileForm() {
   const eqGrid = document.getElementById('equipment-checks');
   const prGrid = document.getElementById('personnel-checks');
@@ -393,7 +384,7 @@ function buildProfileForm() {
   `).join('');
 }
 
-// ── Profile form: pre-fill from stored hospital data ──────────────────
+
 function fillProfileForm() {
   document.getElementById('p-name').value    = hospital.name    || '';
   document.getElementById('p-phone').value   = hospital.phone   || '';
@@ -401,7 +392,7 @@ function fillProfileForm() {
   document.getElementById('p-total').value   = hospital.total_capacity || '';
   document.getElementById('p-free').value    = hospital.free_capacity  || '';
 
-  // Parse equipment / personnel (may be JSON string or array)
+
   let eq = [];
   let pr = [];
   try { eq = Array.isArray(hospital.equipment) ? hospital.equipment : JSON.parse(hospital.equipment || '[]'); } catch { eq = []; }
@@ -415,7 +406,7 @@ function fillProfileForm() {
   });
 }
 
-// ── Save profile ───────────────────────────────────────────────────────
+
 async function saveProfile() {
   const name  = document.getElementById('p-name').value.trim();
   const phone = document.getElementById('p-phone').value.trim();
@@ -436,12 +427,12 @@ async function saveProfile() {
   }
   if (equipment.length === 0) {
     msg.style.color   = 'var(--red)';
-    msg.textContent   = '⚠ Select at least one piece of equipment.';
+    msg.textContent   = 'Select at least one piece of equipment.';
     return;
   }
   if (personnel.length === 0) {
     msg.style.color   = 'var(--red)';
-    msg.textContent   = '⚠ Select at least one type of personnel.';
+    msg.textContent   = ' Select at least one type of personnel.';
     return;
   }
 
@@ -470,33 +461,32 @@ async function saveProfile() {
       // Update header name if changed
       document.getElementById('hosp-name').textContent = hospital.name;
 
-      btn.textContent    = '✔ Saved';
+      btn.textContent    = ' Saved';
       btn.style.background = '#1b5e20';
       msg.style.color    = '#22C55E';
       msg.textContent    = 'Profile updated successfully.';
 
       setTimeout(() => {
-        btn.textContent      = '💾 Save Profile';
+        btn.textContent      = ' Save Profile';
         btn.style.background = '';
         btn.disabled         = false;
         msg.textContent      = '';
       }, 3000);
     } else {
       msg.style.color = 'var(--red)';
-      msg.textContent = `⚠ ${data.error || 'Failed to save. Try again.'}`;
-      btn.textContent = '💾 Save Profile';
+      msg.textContent = ` ${data.error || 'Failed to save. Try again.'}`;
+      btn.textContent = ' Save Profile';
       btn.disabled    = false;
     }
 
   } catch (e) {
     msg.style.color = 'var(--red)';
-    msg.textContent = '⚠ Network error. Check your connection.';
-    btn.textContent = '💾 Save Profile';
+    msg.textContent = ' Network error. Check your connection.';
+    btn.textContent = ' Save Profile';
     btn.disabled    = false;
   }
 }
 
-// ── Case history ───────────────────────────────────────────────────────
 async function loadCaseHistory() {
   try {
     const res  = await fetch(`${API_URL}/api/institutions/me/cases`, {
@@ -524,13 +514,13 @@ async function loadCaseHistory() {
         statusBadge = `<span style="color:${colors[c.outcome]||'#999'};font-weight:700">✔ ${c.outcome.replace(/_/g,' ')}</span>`;
         timeStr     = c.closed_at ? new Date(c.closed_at).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}) : '';
       } else if (c.confirmed_at) {
-        statusBadge = '<span style="color:#10B981;font-weight:700">✅ CONFIRMED</span>';
+        statusBadge = '<span style="color:#10B981;font-weight:700"> CONFIRMED</span>';
         timeStr     = new Date(c.confirmed_at).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'});
       } else if (c.declined_at) {
         statusBadge = '<span style="color:#EF4444;font-weight:700">❌ DECLINED</span>';
         timeStr     = new Date(c.declined_at).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'});
       } else {
-        statusBadge = '<span style="color:#F59E0B;font-weight:700">⏳ PENDING</span>';
+        statusBadge = '<span style="color:#F59E0B;font-weight:700"> PENDING</span>';
       }
 
       const situation = (c.situation || '—').replace(/_/g,' ');
@@ -552,7 +542,7 @@ async function loadCaseHistory() {
   }
 }
 
-// ── Reset to standby ───────────────────────────────────────────────────
+
 function resetToStandby() {
   currentAlert = null;
   document.getElementById('alert-panel').classList.remove('active');
@@ -564,12 +554,12 @@ function resetToStandby() {
   loadCaseHistory();
 }
 
-// ── Account status badge ───────────────────────────────────────────────
+
 function updateStatusBadge(status) {
   const colors = {
-    approved:  { bg: '#14532d', color: '#4ade80', text: '✅ APPROVED' },
-    suspended: { bg: '#450a0a', color: '#f87171', text: '⛔ SUSPENDED' },
-    pending:   { bg: '#422006', color: '#fb923c', text: '⏳ PENDING APPROVAL' }
+    approved:  { bg: '#14532d', color: '#4ade80', text: ' APPROVED' },
+    suspended: { bg: '#450a0a', color: '#f87171', text: ' SUSPENDED' },
+    pending:   { bg: '#422006', color: '#fb923c', text: ' PENDING APPROVAL' }
   };
   const cfg = colors[status] || colors['pending'];
   const style = `background:${cfg.bg};color:${cfg.color};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:0.05em`;
@@ -583,7 +573,7 @@ function updateStatusBadge(status) {
   });
 }
 
-// ── Alarm sound ────────────────────────────────────────────────────────
+
 function playAlarmSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -602,7 +592,6 @@ function playAlarmSound() {
   } catch (e) { /* silent fail */ }
 }
 
-// ── Suspended screen ───────────────────────────────────────────────────
 function showSuspendedScreen(message) {
   sessionStorage.clear();
   document.body.innerHTML = `
@@ -611,7 +600,7 @@ function showSuspendedScreen(message) {
       font-family:'DM Sans',sans-serif;text-align:center;">
       <div style="width:80px;height:80px;border-radius:50%;background:rgba(239,68,68,0.15);
         border:2px solid #EF4444;display:flex;align-items:center;justify-content:center;font-size:36px;">
-        🚫
+        
       </div>
       <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#EF4444;letter-spacing:1px;">
         Account Suspended
