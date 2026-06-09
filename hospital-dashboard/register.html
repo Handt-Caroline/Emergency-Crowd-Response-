@@ -157,17 +157,8 @@ function checkPasswordStrength(pw) {
   label.textContent = levels[score];
 }
 
-/* ── EMAIL VALIDATION — strict professional rules ─────────────────
-   1. No spaces anywhere
-   2. No negative numbers (minus before a digit)
-   3. Must not start or end with a dot (local part)
-   4. No two consecutive dots anywhere
-   5. Local part: only letters, digits, . _ % + -
-   6. Exactly one @
-   7. Domain must contain at least one dot
-   8. TLD at least 2 letters
-   9. Auto-lowercased as user types
-──────────────────────────────────────────────────────────────── */
+
+
 function isValidEmail(email) {
   if (!email || typeof email !== 'string') return false;
   if (/\s/.test(email))            return false;  // no spaces
@@ -291,12 +282,12 @@ async function submit() {
 
   if (!res.ok) {
     btn.className = "login-btn error-btn";
-    btn.textContent = "Failed ❌";
+    btn.textContent = "Failed ";
     return;
   }
 
   btn.className = "login-btn success-btn";
-  btn.textContent = "✔ Submitted";
+  btn.textContent = " Submitted";
 }
 
 buildGrid(EQUIPMENT_OPTIONS,'equipment-grid','equipment');
