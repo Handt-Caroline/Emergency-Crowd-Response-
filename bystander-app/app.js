@@ -20,20 +20,20 @@ const state = {
 // ═══════════════════════════════════════════════════════════════════════
 const SITUATIONS = {
   MEDICAL: [
-    { emoji: '😵', en: 'Person collapsed',    fr: 'Personne effondrée', val: 'UNCONSCIOUS'           },
-{ emoji: '😮‍💨', en: 'Not breathing',       fr: 'Ne respire pas',     val: 'NOT_BREATHING'         },
-    { emoji: '💔', en: 'Chest pain',          fr: 'Douleur thorax',     val: 'CHEST_PAIN'            },
-    { emoji: '🩸', en: 'Severe bleeding',     fr: 'Saignement grave',   val: 'SEVERE_BLEEDING'       },
-    { emoji: '🚗', en: 'Accident / Crash',    fr: 'Accident',           val: 'ACCIDENT_TRAUMA'       },
-    { emoji: '🔥', en: 'Burn',                fr: 'Brûlure',            val: 'BURN'                  },
-    { emoji: '😶', en: 'Face drooping',       fr: 'Visage tombant',     val: 'FACE_DROOPING'         },
-    { emoji: '🗣️', en: 'Slurred speech',      fr: 'Parole confuse',     val: 'SLURRED_SPEECH'        },
-    { emoji: '⚡', en: 'Body shaking',        fr: 'Convulsions',        val: 'SEIZURE'               },
-   { emoji: '💧', en: 'Cold sweat / Pale',   fr: 'Sueur froide',       val: 'COLD_SWEAT'            },
-    { emoji: '👶', en: 'Child unconscious',   fr: 'Enfant inconscient', val: 'CHILD_EMERGENCY'       },
-    { emoji: '🤰', en: 'Childbirth / Labor',  fr: 'Accouchement',       val: 'CHILDBIRTH'            },
-    { emoji: '😷', en: 'Trouble breathing',   fr: 'Difficulté respirer',val: 'BREATHING_DIFFICULTY'  },
-    { emoji: '🤮', en: 'Vomiting blood',      fr: 'Vomit du sang',      val: 'VOMITING_BLOOD'        },
+    { img: 'images/symptoms/collapsed.png', en: 'Person collapsed',    fr: 'Personne effondrée', val: 'UNCONSCIOUS'           },
+{ img: 'images/symptoms/notbreathing.jpg', en: 'Not breathing',       fr: 'Ne respire pas',     val: 'NOT_BREATHING'         },
+    { img: 'images/symptoms/chestpain.jpeg', en: 'Chest pain',          fr: 'Douleur thorax',     val: 'CHEST_PAIN'            },
+    { img: 'images/symptoms/severeblood.jpeg', en: 'Severe bleeding',     fr: 'Saignement grave',   val: 'SEVERE_BLEEDING'       },
+    { img: 'images/symptoms/accident.jpeg', en: 'Accident / Crash',    fr: 'Accident',           val: 'ACCIDENT_TRAUMA'       },
+    { img: 'images/symptoms/burn.jpeg', en: 'Burn',                fr: 'Brûlure',            val: 'BURN'                  },
+    { img: 'images/symptoms/facedrooping.jpeg', en: 'Face drooping',       fr: 'Visage tombant',     val: 'FACE_DROOPING'         },
+    { img: 'images/symptoms/slurredspeech.png', en: 'Slurred speech',      fr: 'Parole confuse',     val: 'SLURRED_SPEECH'        },
+    { img: 'images/symptoms/bodyshaking.png', en: 'Body shaking',        fr: 'Convulsions',        val: 'SEIZURE'               },
+   { img: 'images/symptoms/coldsweat.png', en: 'Cold sweat / Pale',   fr: 'Sueur froide',       val: 'COLD_SWEAT'            },
+    { img: 'images/symptoms/unconsiouschild.png', en: 'Child unconscious',   fr: 'Enfant inconscient', val: 'CHILD_EMERGENCY'       },
+    { img: 'images/symptoms/labor.png', en: 'Childbirth / Labor',  fr: 'Accouchement',       val: 'CHILDBIRTH'            },
+    { img: 'images/symptoms/notbreathing.jpg', en: 'Trouble breathing',   fr: 'Difficulté respirer',val: 'BREATHING_DIFFICULTY'  },
+    { img: 'images/symptoms/vommitingblood.png', en: 'Vomiting blood',      fr: 'Vomit du sang',      val: 'VOMITING_BLOOD'        },
     { emoji: '✏️', en: 'Other',               fr: 'Autre',              val: 'OTHER', isOther: true  },
   ],
   FIRE: [
@@ -91,8 +91,11 @@ function selectType(type) {
     const btn = document.createElement('button');
     btn.className = sit.isOther ? 'sit-btn other-btn' : 'sit-btn';
     btn.dataset.val = sit.val;
+    const iconHtml = sit.img
+      ? `<img src='${sit.img}' alt='${sit.en}' class='sit-img'>`
+      : `<span class='sit-emoji'>${sit.emoji}</span>`;
     btn.innerHTML = `
-      <span class='sit-emoji'>${sit.emoji}</span>
+      ${iconHtml}
       <strong>${sit.en}</strong><br>
       <span style='font-size:10px;color:var(--text-muted)'>${sit.fr}</span>
     `;
